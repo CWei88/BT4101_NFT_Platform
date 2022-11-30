@@ -1,1 +1,1 @@
-# BT4101_NFT_Platform
+# BT4101 FYP Project - NFT Platform
