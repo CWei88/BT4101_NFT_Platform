@@ -1,0 +1,15 @@
+{
+    "attributes": [
+        {
+            "trait_type": "Background",
+            "value": "Mondstadt"
+        },
+        {
+            "trait_type": "Character",
+            "value": "Kaeya"
+        }   
+    ],
+    "description": "Random Photo I had to test out",
+    "image": "ipfs://QmR9Yn6ce8zo6J28qRhB7VRVctp5RtZgP5VjLBB92GGc51",
+    "name": "Test photo"
+}
