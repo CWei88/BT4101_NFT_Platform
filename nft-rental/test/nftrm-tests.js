@@ -32,7 +32,6 @@ it("Rent flow", async () => {
     //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
     const tx = await rentableNFT.connect(owner).mint(1, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
     const txRes = await tx.wait();
-    console.log(txRes.events[0].address)
 
     //Get tokenId
     const tokenId = txRes.events[0].args.tokenId
@@ -43,15 +42,18 @@ it("Rent flow", async () => {
     expect(ownerOf).to.equal(owner.address);
     console.log("Owner is correct!")
 
+    //Set Approval for Marketplace
+    await rentableNFT.approveUser(NFTRM.address);
+
     //list Token onto marketplace
-    console.log("stop here")
     const lis = await NFTRM.connect(owner).listNFT(txRes.events[0].address, tokenId, 1, Math.round(new Date().getTime() / 1000) + 600, {value: listingFee})
-    await lis.wait()
+    const lisW = await lis.wait()
+    console.log("Listed Test NFT");
 
     //Rent NFT to renter for 10 minutes
-    console.log('or here')
-    const rent = await NFTRM.connect(owner).rentNFT(tx.address, tokenId, renter, {value: 1});
+    const rent = await NFTRM.rentNFT(txRes.events[0].address, tokenId, renter, {value: 1});
     await rent.wait()
+    console.log("Rented Test NFT")
 
     //Check something
     console.log(owner.address);
