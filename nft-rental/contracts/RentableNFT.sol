@@ -25,5 +25,9 @@ contract RentableNFT is ERC4907 {
     function tokenURI(uint256 _tokenId) public view override returns(string memory) {
         return tokenURIs[_tokenId];
     }
+
+    function approveUser(address user) public {
+        setApprovalForAll(user, true);
+    }
     
 }
