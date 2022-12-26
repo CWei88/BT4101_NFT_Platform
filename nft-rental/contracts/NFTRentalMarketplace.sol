@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "hardhat/console.sol";
+import "./ERC4907.sol";
 
 contract NFTRentalMarketplace is ERC721URIStorage {
     //Global Variables
@@ -75,16 +76,25 @@ contract NFTRentalMarketplace is ERC721URIStorage {
 
     function getAllNFTs() public view returns (LToken[] memory) {
         uint nftListed = tokenIds.current();
-        LToken[] memory tokens = new LToken[] (nftListed);
         uint currIndex = 0;
+        uint itemCount = 0;
 
         //TODO
         //Add filter to filter out for tokens that are not currently listed.
+        for (uint i = 1; i <=nftListed; i++) {
+            if (idtoListedToken[i].currentlyListed == true) {
+                itemCount += 1;
+            }
+        }
 
-        for (uint i = 1; i <= nftListed; i++) {
-            LToken storage currItem = idtoListedToken[i];
-            tokens[currIndex] = currItem;
-            currIndex += 1;
+        LToken[] memory tokens = new LToken[] (itemCount);
+
+        for (uint i = 1; i <= nftListed; i++) { 
+            if (idtoListedToken[i].currentlyListed == true) {
+                LToken storage currItem = idtoListedToken[i];
+                tokens[currIndex] = currItem;
+                currIndex += 1;
+            }
         }
         return tokens;
     }

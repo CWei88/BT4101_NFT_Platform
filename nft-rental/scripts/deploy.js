@@ -2,9 +2,8 @@ const { ethers } = require("hardhat");
 const fs = require("fs");
 
 async function main() {
-    const accounts = ethers.getSigners();
 
-    const Mplace = await ethers.getContractFactory('NFTRentalMarketplace')
+    const Mplace = await ethers.getContractFactory('NFTRM')
     const marketplace = await Mplace.deploy();
 
     await marketplace.deployed();
@@ -17,7 +16,7 @@ async function main() {
 
     //Writes the ABI and address to marketplace.json
     //Used by frontend files to connect with smart contract
-    fs.writeFileSync('./src/Marketplace.json', JSON.stringify(data));
+    fs.writeFileSync('./src/NFTRM.json', JSON.stringify(data));
 
     console.log("Marketplace deployed!")
 }
