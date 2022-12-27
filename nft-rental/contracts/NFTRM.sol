@@ -62,7 +62,7 @@ contract NFTRM is ReentrancyGuard {
         //Ensure price is not negative
         require(price > 0, "Price cannot be negative");
         //Ensure expiry date is legit
-        require(expiry >= block.timestamp, "Expiry date cannot be earlier than now.");
+        require(expiry > block.timestamp, "Expiry date cannot be earlier than now.");
 
         ERC4907(_nftAddress).transferFrom(msg.sender, address(this), tokenId);
 
@@ -130,7 +130,9 @@ contract NFTRM is ReentrancyGuard {
         uint nftCount = nftListed.current();
         uint myNFTs = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i + 1].owner == msg.sender || idToListedToken[i+1].user == msg.sender) {
+            if (idToListedToken[i + 1].owner == msg.sender) {
+                myNFTs += 1;
+            } else if ((idToListedToken[i+1].user == msg.sender) && (idToListedToken[i+1].expiry > block.timestamp)) {
                 myNFTs += 1;
             }
         }
@@ -138,7 +140,10 @@ contract NFTRM is ReentrancyGuard {
         LToken[] memory tokens = new LToken[](myNFTs);
         uint currIndex = 0;
         for (uint i=0; i < nftCount; i++) {
-            if (idToListedToken[i+1].owner == msg.sender || idToListedToken[i+1].user == msg.sender) {
+            if (idToListedToken[i+1].owner == msg.sender) {
+                tokens[currIndex] = idToListedToken[i+1];
+                currIndex += 1;
+            } else if ((idToListedToken[i+1].user == msg.sender) && (idToListedToken[i+1].expiry > block.timestamp)) {
                 tokens[currIndex] = idToListedToken[i+1];
                 currIndex += 1;
             }
@@ -147,6 +152,7 @@ contract NFTRM is ReentrancyGuard {
         return tokens;
     }
 
+    //Gets NFT Rented Out
     function getMyRentedNFT() public view returns (LToken[] memory) {
         uint nftCount = nftListed.current();
         uint rentedNFTs = 0;
@@ -168,6 +174,8 @@ contract NFTRM is ReentrancyGuard {
         return tokens;
     }
 
+
+    //Gets Listed NFTs
     function getMyListedNFTs() public view returns (LToken[] memory) {
         uint nftCount = nftListed.current();
         uint listedNFTs = 0;
