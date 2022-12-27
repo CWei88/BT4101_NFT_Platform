@@ -24,7 +24,8 @@ contract NFTRM is ReentrancyGuard {
         address nftAddress;
         uint256 tokenId;
         address payable owner;
-        address payable user;
+        address payable seller;
+        address user;
         uint256 price;
         uint64 expiry;
         bool currentlyListed;
@@ -35,7 +36,7 @@ contract NFTRM is ReentrancyGuard {
         address nftAddress,
         uint256 indexed tokenId,
         address owner,
-        address user,
+        address seller,
         uint256 price,
         uint64 expiry
     );
@@ -44,7 +45,7 @@ contract NFTRM is ReentrancyGuard {
     event LTokenRentedOut (
         address nftAddress,
         uint256 indexed tokenId,
-        address owner,
+        address seller,
         address user,
         uint256 price,
         uint64 expiry
@@ -60,13 +61,15 @@ contract NFTRM is ReentrancyGuard {
         require(msg.value == listPrice, "Not enough ETH to pay for platform fees");
         //Ensure price is not negative
         require(price > 0, "Price cannot be negative");
+        //Ensure expiry date is legit
+        require(expiry >= block.timestamp, "Expiry date cannot be earlier than now.");
 
         ERC4907(_nftAddress).transferFrom(msg.sender, address(this), tokenId);
 
         nftListed.increment();
 
         idToListedToken[tokenId] = LToken(
-            _nftAddress, tokenId, payable(address(this)), payable(msg.sender),
+            _nftAddress, tokenId, payable(address(this)), payable(msg.sender), address(0),
             price, expiry, true
         );
 
@@ -74,18 +77,35 @@ contract NFTRM is ReentrancyGuard {
     }
 
     //Rent an NFT
-    function rentNFT(address _nftAddress, uint256 tokenId, address rentee) public payable nonReentrant {
+    function rentNFT(uint256 tokenId, address rentee) public payable nonReentrant {
         LToken storage nft = idToListedToken[tokenId];
         require(msg.value >= nft.price, "Price not enough to rent NFT");
+        require(nft.currentlyListed == true, "NFT is not listed");
 
-        payable(nft.owner).transfer(msg.value);
-        ERC4907(_nftAddress).setUser(tokenId, rentee, nft.expiry);
+        payable(nft.seller).transfer(msg.value);
+        ERC4907(nft.nftAddress).setUser(tokenId, payable(rentee), nft.expiry);
         marketOwner.transfer(listPrice);
         nft.user = payable(rentee);
         nft.currentlyListed = false;
 
+        //idToListedToken[tokenId] = nft;
+
         nftRented.increment();
-        emit LTokenRentedOut(_nftAddress, tokenId, nft.owner, rentee, msg.value, nft.expiry);
+        emit LTokenRentedOut(nft.nftAddress, tokenId, nft.seller, rentee, msg.value, nft.expiry);
+    }
+
+    //Get all NFTs
+    function getAllNFTs() public view returns (LToken[] memory) {
+        uint nftCount = nftListed.current();
+        LToken[] memory tokens = new LToken[](nftCount);
+        uint currIndex = 0;
+        
+        for (uint i = 0; i < nftCount; i++) {
+            tokens[currIndex] = idToListedToken[i+1];
+            currIndex += 1;
+        }
+
+        return tokens;
     }
 
     //Gets all currently listed NFT
@@ -96,7 +116,7 @@ contract NFTRM is ReentrancyGuard {
         LToken[] memory tokens = new LToken[](storedNFTCount);
         uint currIndex = 0;
         
-        for (uint i = 0; i < storedNFTCount; i++) {
+        for (uint i = 0; i < nftCount; i++) {
             if (idToListedToken[i+1].currentlyListed) {
                 tokens[currIndex] = idToListedToken[i+1];
                 currIndex += 1;
@@ -170,9 +190,9 @@ contract NFTRM is ReentrancyGuard {
     }
 
     //Get specific NFT owner
-    function getNFTOwner(uint256 tokenId) public view returns (LToken memory) {
+    function getNFTOwner(uint256 tokenId) public view returns (address) {
         LToken memory tok = idToListedToken[tokenId];
-        return tok;
+        return tok.seller;
     }
 
     //Get the current listing fee

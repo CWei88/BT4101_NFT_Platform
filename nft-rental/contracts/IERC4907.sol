@@ -25,4 +25,6 @@ interface IERC4907 {
     /// @param tokenId The NFT to get the user expires for
     /// @return The user expires for this NFT
     function userExpires(uint256 tokenId) external view returns(uint256);
+
+    function setUserFrom(address owner, uint256 tokenId, address user, uint64 expires) external;
 }
