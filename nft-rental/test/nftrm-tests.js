@@ -79,9 +79,6 @@ it("Rent flow", async () => {
 
     //check renter of token
     const renterOf2 = await NFTRM.connect(renter).getMyNFTs();
-    console.log(renterOf2)
     expect(renterOf2.length).to.equal(0)
-    expect(renterOf2).to.not.equal(renter.address)
-    expect(renterOf2).to.equal("0x0000000000000000000000000000000000000000")
     console.log("All Tests Correct!")
 })
