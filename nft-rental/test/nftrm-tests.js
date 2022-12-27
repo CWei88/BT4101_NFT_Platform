@@ -1,6 +1,5 @@
 const { ethers, network } = require('hardhat');
 const { expect } = require('chai');
-const { web3 } = require('web3')
 
 const setupMarketplace = async () => {
     const RentableNFT = await ethers.getContractFactory("NFTRM")
@@ -21,7 +20,14 @@ const setupAccounts = async () => {
     return [accounts[0], accounts[1]];
 }
 
-it("Rent flow", async () => {
+const setUpERC721 = async() => {
+    const DiffNFT = await ethers.getContractFactory("DiffTypeNFT")
+    const rNFT = await DiffNFT.deploy();
+    await rNFT.deployed();
+    return rNFT;
+}
+
+it("Rent flow ERC4907", async () => {
     const NFTRM = await setupMarketplace();
     const rentableNFT = await setupContract();
     const [owner, renter] = await setupAccounts();
@@ -30,6 +36,8 @@ it("Rent flow", async () => {
     listingFee = listingFee.toString();
 
     //Set Approval for Marketplace
+    //TODO
+    //Fix Approval
     await rentableNFT.approveUser(NFTRM.address);
 
     //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
@@ -74,11 +82,47 @@ it("Rent flow", async () => {
     console.log("Renter is correct!")
 
     //Move chain forward in time to check if nft is still being rented out.
-    await network.provider.send("evm_increaseTime", [601]);
+    await network.provider.send("evm_increaseTime", [610]);
     await network.provider.send("evm_mine")
 
     //check renter of token
     const renterOf2 = await NFTRM.connect(renter).getMyNFTs();
     expect(renterOf2.length).to.equal(0)
     console.log("All Tests Correct!")
+})
+
+it("List Flow ERC721", async () => {
+    const NFTRM = await setupMarketplace();
+    const nonRNFT = await setUpERC721();
+    const [owner, renter] = await setupAccounts();
+
+    let listingFee = await NFTRM.getListingFee();
+    listingFee = listingFee.toString();
+
+    const tx = await nonRNFT.connect(owner).mint('newURI', NFTRM.address);
+    const txRes = await tx.wait();
+
+    //Get tokenId
+    const tokenId = txRes.events[0].args.tokenId
+    console.log(tokenId)
+
+    //Get NFT Address
+    let nftAddress = txRes.events[0].address.toString();
+
+    //check owner of tokenId 0
+    const ownerOf = await nonRNFT.ownerOf(tokenId);
+    expect(ownerOf).to.equal(owner.address);
+    console.log("Owner is correct!")
+
+    //list Token onto marketplace
+    const lis = await NFTRM.connect(owner).listNFT(nftAddress, tokenId, 1, Math.round(new Date().getTime() / 1000) + 700, {value: listingFee})
+    await lis.wait()
+    //const lis2 = await NFTRM.connect(owner).listNFT(nftAddress, tokenId, 1, Math.round(new Date().getTime() / 1000) + 6000, {value: listingFee})
+    //await lis2.wait()
+    console.log("Listed Test NFT");
+
+    const res = await NFTRM.getMyNFTs();
+    console.log(owner.address)
+    expect(res.length).to.equal(1);
+    expect(res[0][3]).to.equal(owner.address)
 })

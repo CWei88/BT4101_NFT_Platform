@@ -130,7 +130,7 @@ contract NFTRM is ReentrancyGuard {
         uint nftCount = nftListed.current();
         uint myNFTs = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i + 1].owner == msg.sender) {
+            if (idToListedToken[i + 1].seller == msg.sender) {
                 myNFTs += 1;
             } else if ((idToListedToken[i+1].user == msg.sender) && (idToListedToken[i+1].expiry > block.timestamp)) {
                 myNFTs += 1;
@@ -140,7 +140,7 @@ contract NFTRM is ReentrancyGuard {
         LToken[] memory tokens = new LToken[](myNFTs);
         uint currIndex = 0;
         for (uint i=0; i < nftCount; i++) {
-            if (idToListedToken[i+1].owner == msg.sender) {
+            if (idToListedToken[i+1].seller == msg.sender) {
                 tokens[currIndex] = idToListedToken[i+1];
                 currIndex += 1;
             } else if ((idToListedToken[i+1].user == msg.sender) && (idToListedToken[i+1].expiry > block.timestamp)) {
@@ -157,7 +157,7 @@ contract NFTRM is ReentrancyGuard {
         uint nftCount = nftListed.current();
         uint rentedNFTs = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].owner == msg.sender && idToListedToken[i+1].user != address(0)) {
+            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].user != address(0)) {
                 rentedNFTs += 1;
             }
         }
@@ -165,7 +165,7 @@ contract NFTRM is ReentrancyGuard {
         LToken[] memory tokens = new LToken[](rentedNFTs);
         uint currIndex = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].owner == msg.sender && idToListedToken[i+1].user != address(0)) {
+            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].user != address(0)) {
                 tokens[currIndex] = idToListedToken[i + 1];
                 currIndex += 1;
             }
@@ -180,7 +180,7 @@ contract NFTRM is ReentrancyGuard {
         uint nftCount = nftListed.current();
         uint listedNFTs = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].owner == msg.sender && idToListedToken[i+1].currentlyListed) {
+            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].currentlyListed) {
                 listedNFTs += 1;
             }
         }
@@ -188,7 +188,7 @@ contract NFTRM is ReentrancyGuard {
         LToken[] memory tokens = new LToken[](listedNFTs);
         uint currIndex = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].owner == msg.sender && idToListedToken[i+1].currentlyListed) {
+            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].currentlyListed) {
                 tokens[currIndex] = idToListedToken[i+1];
                 currIndex += 1;
             }
