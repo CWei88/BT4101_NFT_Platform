@@ -69,4 +69,12 @@ contract ERC4907 is ERC721, IERC4907 {
             emit UpdateUser(tokenId, address(0), 0);
         }
     }
+
+    function setUserFrom(address owner, uint256 tokenId, address user, uint64 expires) public virtual {
+        require(_isApprovedOrOwner(owner, tokenId),"ERC721: transfer caller is not owner nor approved");
+        UserInfo storage info =  _users[tokenId];
+        info.user = user;
+        info.expires = expires;
+        emit UpdateUser(tokenId,user,expires);
+    }
 }
