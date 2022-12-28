@@ -51,12 +51,28 @@ contract NFTRM is ReentrancyGuard {
         uint64 expiry
     );
 
+    //Emit when token is delisted
+    event LTokenDelisted (
+        address nftAddress,
+        uint256 indexed tokenId,
+        address owner,
+        address seller
+    );
+
+    event expiredNFT(uint256 indexed tokenId);
+
+    modifier onlyOwner(address nftAddress, uint256 tokenId) {
+        ERC4907 nft = ERC4907(nftAddress);
+        require(nft.ownerOf(tokenId) == msg.sender, "ERC721: Caller is not owner or approved");
+        _;
+    }
+
     constructor () {
         marketOwner = payable(msg.sender);
     }
 
     //Listing NFT on Marketplace
-    function listNFT(address _nftAddress, uint256 tokenId, uint256 price, uint64 expiry) public payable nonReentrant {
+    function listNFT(address _nftAddress, uint256 tokenId, uint256 price, uint64 expiry) public payable nonReentrant onlyOwner(_nftAddress, tokenId) {
         //Checks if sender has enough ETH to pay for listing
         require(msg.value == listPrice, "Not enough ETH to pay for platform fees");
         //Ensure price is not negative
@@ -94,6 +110,39 @@ contract NFTRM is ReentrancyGuard {
         emit LTokenRentedOut(nft.nftAddress, tokenId, nft.seller, rentee, msg.value, nft.expiry);
     }
 
+    //delist NFT
+    function delistNFT(address _nftAddress, uint256 tokenId) public onlyOwner(_nftAddress, tokenId) {
+        LToken storage nft = idToListedToken[tokenId];
+        require(nft.seller == msg.sender, "Only NFT owner can delist");
+        require(nft.expiry < block.timestamp, "User is still using token");
+
+        ERC4907(_nftAddress).transferFrom(address(this), msg.sender, tokenId);
+
+        nftListed.decrement();
+        delete (idToListedToken[tokenId]);
+
+        emit LTokenDelisted(_nftAddress, tokenId, address(this), msg.sender);
+    }
+
+    function expireNFT(uint256 tokenId) private {
+        LToken storage nft = idToListedToken[tokenId];
+        nft.currentlyListed = false;
+
+        emit expiredNFT(tokenId);
+    }
+
+    //refresh NFTs
+    function refreshNFTs() public {
+        uint nftCount = nftListed.current();
+
+        for (uint i=0; i < nftCount; i++) {
+            LToken memory tok = idToListedToken[i+1];
+            if (tok.expiry < block.timestamp) {
+                expireNFT(tok.tokenId);
+            }
+        }
+    }
+
     //Get all NFTs
     function getAllNFTs() public view returns (LToken[] memory) {
         uint nftCount = nftListed.current();
@@ -117,7 +166,7 @@ contract NFTRM is ReentrancyGuard {
         uint currIndex = 0;
         
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].currentlyListed) {
+            if (idToListedToken[i+1].currentlyListed == true) {
                 tokens[currIndex] = idToListedToken[i+1];
                 currIndex += 1;
             }
@@ -132,7 +181,7 @@ contract NFTRM is ReentrancyGuard {
         for (uint i = 0; i < nftCount; i++) {
             if (idToListedToken[i + 1].seller == msg.sender) {
                 myNFTs += 1;
-            } else if ((idToListedToken[i+1].user == msg.sender) && (idToListedToken[i+1].expiry > block.timestamp)) {
+            } else if ((idToListedToken[i+1].user == msg.sender) && (idToListedToken[i+1].expiry >= block.timestamp)) {
                 myNFTs += 1;
             }
         }
@@ -143,7 +192,7 @@ contract NFTRM is ReentrancyGuard {
             if (idToListedToken[i+1].seller == msg.sender) {
                 tokens[currIndex] = idToListedToken[i+1];
                 currIndex += 1;
-            } else if ((idToListedToken[i+1].user == msg.sender) && (idToListedToken[i+1].expiry > block.timestamp)) {
+            } else if ((idToListedToken[i+1].user == msg.sender) && (idToListedToken[i+1].expiry >= block.timestamp)) {
                 tokens[currIndex] = idToListedToken[i+1];
                 currIndex += 1;
             }
@@ -153,11 +202,11 @@ contract NFTRM is ReentrancyGuard {
     }
 
     //Gets NFT Rented Out
-    function getMyRentedNFT() public view returns (LToken[] memory) {
+    function getMyRentedNFTs() public view returns (LToken[] memory) {
         uint nftCount = nftListed.current();
         uint rentedNFTs = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].user != address(0)) {
+            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].expiry >= block.timestamp) {
                 rentedNFTs += 1;
             }
         }
@@ -165,7 +214,7 @@ contract NFTRM is ReentrancyGuard {
         LToken[] memory tokens = new LToken[](rentedNFTs);
         uint currIndex = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].user != address(0)) {
+            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].expiry >= block.timestamp) {
                 tokens[currIndex] = idToListedToken[i + 1];
                 currIndex += 1;
             }
@@ -196,6 +245,7 @@ contract NFTRM is ReentrancyGuard {
 
         return tokens;
     }
+
 
     //Get specific NFT owner
     function getNFTOwner(uint256 tokenId) public view returns (address) {
