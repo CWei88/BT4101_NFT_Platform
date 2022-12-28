@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "hardhat/console.sol";
 import "./ERC4907.sol";
+import "./ERC4907Wrapper.sol";
 
 contract NFTRM is ReentrancyGuard {
     //Global Variables
@@ -62,8 +63,8 @@ contract NFTRM is ReentrancyGuard {
     event expiredNFT(uint256 indexed tokenId);
 
     modifier onlyOwner(address nftAddress, uint256 tokenId) {
-        ERC4907 nft = ERC4907(nftAddress);
-        require(nft.ownerOf(tokenId) == msg.sender, "ERC721: Caller is not owner or approved");
+        address owner = IERC721(nftAddress).ownerOf(tokenId);
+        require(owner == msg.sender, "ERC721: Caller is not owner or approved");
         _;
     }
 
@@ -124,6 +125,7 @@ contract NFTRM is ReentrancyGuard {
         emit LTokenDelisted(_nftAddress, tokenId, address(this), msg.sender);
     }
 
+    //Deals with expired tokens
     function expireNFT(uint256 tokenId) private {
         LToken storage nft = idToListedToken[tokenId];
         nft.currentlyListed = false;
