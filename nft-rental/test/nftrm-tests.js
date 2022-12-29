@@ -178,7 +178,7 @@ it("Prevent renter from listing and delisting", async() => {
     .to.be.revertedWith("ERC721: Caller is not owner or approved")
     console.log("Tested Listing")
 
-    await expect(NFTRM.connect(renter).delistNFT(nftAddress, tokenId)).to.be.revertedWith("ERC721: Caller is not owner or approved")
+    await expect(NFTRM.connect(renter).delistNFT(nftAddress, tokenId)).to.be.revertedWith("Only NFT owner can delist")
     console.log("Tested delisting")
 })
 
@@ -238,10 +238,10 @@ it("Checks unrented NFT after expiry", async() => {
 
      //TODO
     //Fix This
-    //const getListedNFT = await NFTRM.getListedNFTs();
-    //console.log(getListedNFT)
-    //expect(getListedNFT.length).to.equal(0);
-    //console.log("Got listed NFTs")
+    const getListedNFT = await NFTRM.getListedNFTs();
+    console.log(getListedNFT)
+    expect(getListedNFT.length).to.equal(0);
+    console.log("Got listed NFTs")
 })
 
 it("Multiple NFT listings", async() => {
@@ -254,13 +254,11 @@ it("Multiple NFT listings", async() => {
     listingFee = listingFee.toString();
 
     //Set Approval for Marketplace
-    //TODO
-    //Fix Approval
     await rentableNFT.approveUser(NFTRM.address);
     await ERC721Token.approveUser(NFTRM.address);
 
     //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
-    const tx = await rentableNFT.connect(owner).mint(0, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+    const tx = await rentableNFT.connect(owner).mint(3, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
     const txRes = await tx.wait();
 
     //Mint second token
@@ -305,13 +303,16 @@ it("Multiple NFT listings", async() => {
     const tx5Res = await tx5.wait();
 
     //update tokenaddress
-    nftAddress2 = deWrap1.events[2].address.toString()
-    nftAddress3 = deWrap2.events[2].address.toString()
+    nftAddress2 = tx4Res.events[2].address.toString()
+    nftAddress3 = tx5Res.events[2].address.toString()
 
     await deWrap1.approve(NFTRM.address, tokenId2)
     await deWrap2.approve(NFTRM.address, tokenId3)
 
-    console.log(await deWrap1.ownerOf(tokenId2))
+    console.log(deWrap1.address)
+
+    expect(await ERC721Token.ownerOf(tokenId2)).to.equal(deWrap1.address)
+    expect(await ERC721Token.ownerOf(tokenId3)).to.equal(deWrap2.address)
 
     //check owner of tokenId 0
     const ownerOf = await rentableNFT.ownerOf(tokenId1);
@@ -344,8 +345,8 @@ it("Multiple NFT listings", async() => {
     expect(listedNFT.length).to.equal(2);
 
     //Check NFT delisting
-    const delis = NFTRM.connect(owner).delistNFT(nftAddress1, tokenId1);
-    delis.wait();
+    const delis = await NFTRM.connect(owner).delistNFT(nftAddress1, tokenId1);
+    await delis.wait();
     let newlis = await NFTRM.getAllNFTs();
     expect(newlis.length).to.equal(2);
     console.log("NFT successfully delisted")
@@ -357,14 +358,15 @@ it("Multiple NFT listings", async() => {
     console.log("Renter is correct!")
 
     //Check NFT rented out
-    let rentedNFT = NFTRM.connect(owner).getMyRentedNFTs()
-    console.log(rentedNFT)
+    let rentedNFT = await NFTRM.connect(owner).getMyRentedNFTs()
     expect(rentedNFT.length).to.equal(1)
     console.log("Amount of NFT Rented Correct")
 
     //Move chain forward in time to check if nft is still being rented out.
-    await network.provider.send('evm_increaseTime', [410])
+    await network.provider.send('evm_increaseTime', [1010])
     await network.provider.send('evm_mine')
+
+    await NFTRM.refreshNFTs();
 
     //check renter of token
     const renterOf2 = await NFTRM.connect(renter).getMyNFTs();
@@ -372,24 +374,30 @@ it("Multiple NFT listings", async() => {
     console.log("All Tests Correct!")
 
      //Check NFT rented out
-    let lasNFT = NFTRM.connect(owner).getMyRentedNFTs()
-    console.log(lasNFT)
+    let lasNFT = await NFTRM.connect(owner).getMyRentedNFTs()
     expect(lasNFT.length).to.equal(0)
     console.log("Amount of NFT Rented after expiry Correct")
 
     //Check NFT Listed
-    let newT = NFTRM.getListedNFTs();
+    let newT = await NFTRM.getListedNFTs();
+    console.log(newT)
     expect(newT.length).to.equal(0);
     console.log("Final Test correct!")
+
+    console.log(await ERC721Token.ownerOf(tokenId2))
+    console.log(owner.address)
 
     //Unwrap tokens
     //deploy first wrapper
     const tx6 = await deWrap1.connect(owner).unwrapToken(tokenId2);
-    const tx6Res = tx6.wait();
+    const tx6Res = await tx6.wait();
+    console.log("First token unwrapped")
     
     //deploy second wrapper
     const tx7 = await deWrap2.connect(owner).unwrapToken(tokenId3);
-    const tx7Res = tx7.wait();
+    const tx7Res = await tx7.wait();
+    console.log("Second token unwrapped")
 
+    expect(await ERC721Token.ownerOf(tx6Res.events[2].args.tokenId)).to.equal(owner.address)
+    expect(await ERC721Token.ownerOf(tx7Res.events[2].args.tokenId)).to.equal(owner.address)
 })
-

@@ -112,10 +112,10 @@ contract NFTRM is ReentrancyGuard {
     }
 
     //delist NFT
-    function delistNFT(address _nftAddress, uint256 tokenId) public onlyOwner(_nftAddress, tokenId) {
+    function delistNFT(address _nftAddress, uint256 tokenId) public {
         LToken storage nft = idToListedToken[tokenId];
         require(nft.seller == msg.sender, "Only NFT owner can delist");
-        require(nft.expiry < block.timestamp, "User is still using token");
+        require(nft.user == address(0) || nft.expiry < block.timestamp, "User is still using token");
 
         ERC4907(_nftAddress).transferFrom(address(this), msg.sender, tokenId);
 
@@ -141,6 +141,9 @@ contract NFTRM is ReentrancyGuard {
             LToken memory tok = idToListedToken[i+1];
             if (tok.expiry < block.timestamp) {
                 expireNFT(tok.tokenId);
+                if (tok.user != address(0)) {
+                    nftRented.decrement();
+                }
             }
         }
     }
@@ -152,8 +155,10 @@ contract NFTRM is ReentrancyGuard {
         uint currIndex = 0;
         
         for (uint i = 0; i < nftCount; i++) {
-            tokens[currIndex] = idToListedToken[i+1];
-            currIndex += 1;
+            if (idToListedToken[i+1].owner != address(0)) {
+                tokens[currIndex] = idToListedToken[i+1];
+                currIndex += 1;
+            }
         }
 
         return tokens;
@@ -162,13 +167,18 @@ contract NFTRM is ReentrancyGuard {
     //Gets all currently listed NFT
     function getListedNFTs() public view returns (LToken[] memory) {
         uint256 nftCount = nftListed.current();
-        uint256 storedNFTCount = nftCount - nftRented.current();
+        uint256 nftListed = 0;
+        for (uint i = 0; i < nftCount; i++) {
+            if (idToListedToken[i+1].currentlyListed) {
+                nftListed += 1;
+            }
+        }
 
-        LToken[] memory tokens = new LToken[](storedNFTCount);
+        LToken[] memory tokens = new LToken[](nftListed);
         uint currIndex = 0;
         
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].currentlyListed == true) {
+            if (idToListedToken[i+1].currentlyListed) {
                 tokens[currIndex] = idToListedToken[i+1];
                 currIndex += 1;
             }
@@ -208,7 +218,8 @@ contract NFTRM is ReentrancyGuard {
         uint nftCount = nftListed.current();
         uint rentedNFTs = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].expiry >= block.timestamp) {
+            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].expiry >= block.timestamp
+            && idToListedToken[i+1].user != address(0)) {
                 rentedNFTs += 1;
             }
         }
@@ -216,7 +227,8 @@ contract NFTRM is ReentrancyGuard {
         LToken[] memory tokens = new LToken[](rentedNFTs);
         uint currIndex = 0;
         for (uint i = 0; i < nftCount; i++) {
-            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].expiry >= block.timestamp) {
+            if (idToListedToken[i+1].seller == msg.sender && idToListedToken[i+1].expiry >= block.timestamp 
+            && idToListedToken[i+1].user != address(0)) {
                 tokens[currIndex] = idToListedToken[i + 1];
                 currIndex += 1;
             }
