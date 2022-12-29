@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 contract ERC4907Wrapper is ERC4907, IERC721Receiver {
 
     address internal _tokenAddress;
+    address internal originalOwner;
 
     event TokenWrapped(address nftAddress, uint256 tokenId);
 
@@ -28,6 +29,7 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver {
     function wrapToken(uint256 tokenId) public virtual{
         address owner = IERC721(_tokenAddress).ownerOf(tokenId);
         require(owner == msg.sender, "Only owner can call this");
+        originalOwner = owner;
 
         ERC721(_tokenAddress).safeTransferFrom(msg.sender, address(this), tokenId);
         _safeMint(msg.sender, tokenId);
@@ -36,8 +38,8 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver {
     }
 
     function unwrapToken(uint256 tokenId) public virtual{
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
         address owner = IERC721(_tokenAddress).ownerOf(tokenId);
+        require(originalOwner == msg.sender , "Only owner can unwrap");
         require(owner == address(this), "No wrapped tokenId found");
 
         _burn(tokenId);
