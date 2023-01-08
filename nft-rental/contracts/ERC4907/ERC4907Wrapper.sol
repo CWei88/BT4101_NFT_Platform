@@ -39,7 +39,7 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver {
 
     function unwrapToken(uint256 tokenId) public virtual{
         address owner = IERC721(_tokenAddress).ownerOf(tokenId);
-        require(originalOwner == msg.sender , "Only owner can unwrap");
+        require(_isApprovedOrOwner(msg.sender, tokenId), "Only owner can unwrap");
         require(owner == address(this), "No wrapped tokenId found");
 
         _burn(tokenId);

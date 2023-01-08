@@ -1,7 +1,7 @@
-hardhat-demo/hardhat-tutorial/hardhat.config.js
-hardhat-demo/hardhat-tutorial/node_modules
-NFT-experimentation/node_modules
-NFT-experimentation/.env
-nft-test/.env
-nft-test/node_modules
-nft-test/frontend/node_modules
+old_files/hardhat-demo/hardhat-tutorial/hardhat.config.js
+old_files/hardhat-demo/hardhat-tutorial/node_modules
+old_files/NFT-experimentation/node_modules
+old_files/NFT-experimentation/.env
+old_files/nft-test/.env
+old_files/nft-test/node_modules
+old_files/nft-test/frontend/node_modules

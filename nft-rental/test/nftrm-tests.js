@@ -311,6 +311,7 @@ it("Multiple NFT listings", async() => {
 
     console.log(deWrap1.address)
 
+    //Check if token has been transferred to wrapper correctly
     expect(await ERC721Token.ownerOf(tokenId2)).to.equal(deWrap1.address)
     expect(await ERC721Token.ownerOf(tokenId3)).to.equal(deWrap2.address)
 
@@ -387,17 +388,29 @@ it("Multiple NFT listings", async() => {
     console.log(await ERC721Token.ownerOf(tokenId2))
     console.log(owner.address)
 
+
+    //TODO
+    //Fix unWrap. Should not be able to unWrap as token is still listed.
+    //Token should be delisted before unwrapping.
     //Unwrap tokens
     //deploy first wrapper
+    await expect(deWrap1.connect(owner).unwrapToken(tokenId2)).to.be.revertedWith("Only owner can unwrap")
+    console.log("error correct")
+
+    const delis2 = await NFTRM.connect(owner).delistNFT(nftAddress2, tokenId2)
+    await delis2.wait();
     const tx6 = await deWrap1.connect(owner).unwrapToken(tokenId2);
     const tx6Res = await tx6.wait();
     console.log("First token unwrapped")
     
     //deploy second wrapper
+    const delis3 = await NFTRM.connect(owner).delistNFT(nftAddress3, tokenId3)
+    await delis3.wait();
     const tx7 = await deWrap2.connect(owner).unwrapToken(tokenId3);
     const tx7Res = await tx7.wait();
     console.log("Second token unwrapped")
 
+    //Check if token has been transferred back to owner.
     expect(await ERC721Token.ownerOf(tx6Res.events[2].args.tokenId)).to.equal(owner.address)
     expect(await ERC721Token.ownerOf(tx7Res.events[2].args.tokenId)).to.equal(owner.address)
 })
