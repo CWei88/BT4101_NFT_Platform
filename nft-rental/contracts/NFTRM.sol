@@ -4,8 +4,8 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "hardhat/console.sol";
-import "./ERC4907.sol";
-import "./ERC4907Wrapper.sol";
+import "./ERC4907/ERC4907.sol";
+import "./ERC4907/ERC4907Wrapper.sol";
 
 contract NFTRM is ReentrancyGuard {
     //Global Variables
@@ -19,6 +19,16 @@ contract NFTRM is ReentrancyGuard {
     uint256 listPrice = 0.01 ether;
 
     mapping(uint256 => LToken) private idToListedToken;
+    mapping(uint256 => mapping(address => Bid)) private idBids;
+    mapping(uint256 => uint256) numBids;
+    address[] bidAddresses;
+
+    //Structure of Bid
+    struct Bid {
+        address bidder;
+        uint256 price;
+        uint64 expiry;
+    }
 
     //Structure of Listed Token
     struct LToken {
@@ -29,6 +39,7 @@ contract NFTRM is ReentrancyGuard {
         address user;
         uint256 price;
         uint64 expiry;
+        uint64 listingExpiry;
         bool currentlyListed;
     }
 
@@ -41,9 +52,29 @@ contract NFTRM is ReentrancyGuard {
         uint256 price,
         uint64 expiry
     );
+    
+    //Emit when a rental bid is made
+    event LTokenBid (
+        address nftAddress,
+        uint256 indexed tokenId,
+        address seller,
+        address user,
+        uint256 price,
+        uint64 expiry
+    );
 
     //Emit event when token is rented out.
     event LTokenRentedOut (
+        address nftAddress,
+        uint256 indexed tokenId,
+        address seller,
+        address user,
+        uint256 price,
+        uint64 expiry
+    );
+
+    //Emit event when token is updated
+    event LTokenUpdated(
         address nftAddress,
         uint256 indexed tokenId,
         address seller,
@@ -72,14 +103,18 @@ contract NFTRM is ReentrancyGuard {
         marketOwner = payable(msg.sender);
     }
 
+
     //Listing NFT on Marketplace
-    function listNFT(address _nftAddress, uint256 tokenId, uint256 price, uint64 expiry) public payable nonReentrant onlyOwner(_nftAddress, tokenId) {
+    function listNFT(address _nftAddress, uint256 tokenId, uint256 price, uint64 expiry, uint64 listingExpiry) public payable nonReentrant onlyOwner(_nftAddress, tokenId) {
         //Checks if sender has enough ETH to pay for listing
         require(msg.value == listPrice, "Not enough ETH to pay for platform fees");
         //Ensure price is not negative
         require(price > 0, "Price cannot be negative");
         //Ensure expiry date is legit
         require(expiry > block.timestamp, "Expiry date cannot be earlier than now.");
+        //Ensure listing expiry date is legit, and less than rental expiry.
+        require(listingExpiry > block.timestamp, "Listing expiry cannot be negative");
+        require(listingExpiry <= expiry, "Expiry time cannot be shorter than listing expiry");
 
         ERC4907(_nftAddress).transferFrom(msg.sender, address(this), tokenId);
 
@@ -87,32 +122,145 @@ contract NFTRM is ReentrancyGuard {
 
         idToListedToken[tokenId] = LToken(
             _nftAddress, tokenId, payable(address(this)), payable(msg.sender), address(0),
-            price, expiry, true
+            price, expiry, listingExpiry, true
         );
 
         emit LTokenListed(_nftAddress, tokenId, address(this), msg.sender, price, expiry);
     }
 
+    //Offering to rent NFT
+    function offerToRent(uint256 tokenId, uint256 price, uint64 expiry) public payable nonReentrant {
+        LToken storage nft = idToListedToken[tokenId];
+        //Checks that offer is higher than rental price
+        require(price >= nft.price, "price not enough for NFT");
+        //Checks that rental is currently listed
+        require(nft.currentlyListed == true, "NFT is not listed");
+        //Checks that bid timing has not resulted in nft being unusable.
+        require(nft.expiry > block.timestamp, "NFT expiry date is longer than current time");
+        // Checks that the listing has not expired yet.
+        require(nft.listingExpiry > block.timestamp, "Listing has expired");
+        
+        if (idBids[tokenId][msg.sender].price == 0) {
+            numBids[tokenId] += 1;
+        }
+        idBids[tokenId][msg.sender] = Bid(payable(msg.sender), price, expiry);
+        bidAddresses.push(payable(msg.sender));
+    }
+    
+    //Viewing all bids received by token
+    function viewAllBids(uint256 tokenId) public view returns(Bid[] memory) {
+        LToken storage nft = idToListedToken[tokenId];
+        require (nft.seller == msg.sender, "Address not listing party");
+        Bid[] memory getAllBids = new Bid[](numBids[tokenId]);
+        for (uint i=0; i < numBids[tokenId]; i++) {
+            getAllBids[i] = idBids[tokenId][bidAddresses[i]];
+        }
+        return getAllBids;
+    }
+
+
+    //Function to Accept bids
+    //To overwrite rentNFT function once it is successful
+    function acceptOffer(uint256 tokenId, address renter) public payable nonReentrant {
+        LToken storage nft = idToListedToken[tokenId];
+        require(nft.seller == msg.sender, "Address not listing party");
+        require(nft.currentlyListed == true, "NFT is not listed");
+        require(nft.expiry > block.timestamp, "NFT expiry date is longer than current time");
+        require(nft.listingExpiry > block.timestamp, "Listing has expired");
+
+        Bid memory getBid = idBids[tokenId][renter];
+        uint256 pricePaid =  getBid.price;
+        uint256 priceToPlatform = pricePaid * 2 / 10;
+        uint256 priceToSeller = pricePaid - priceToPlatform;
+        payable(nft.seller).transfer(priceToSeller);
+        ERC4907(nft.nftAddress).setUser(tokenId, payable(msg.sender), nft.expiry);
+        marketOwner.transfer(listPrice + priceToPlatform);
+        nft.user = payable(msg.sender);
+        nft.currentlyListed = false;
+
+        nftRented.increment();
+        emit LTokenRentedOut(nft.nftAddress, tokenId, nft.seller, renter, msg.value, nft.expiry);
+    }
+
     //Rent an NFT
-    function rentNFT(uint256 tokenId, address rentee) public payable nonReentrant {
+    function rentNFT(uint256 tokenId) public payable nonReentrant {
         LToken storage nft = idToListedToken[tokenId];
         require(msg.value >= nft.price, "Price not enough to rent NFT");
-        require(nft.currentlyListed == true, "NFT is not listed");
+        require(nft.currentlyListed == true, "NFT is not listed");        
+        //Checks that bid timing has not resulted in nft being unusable.
+        require(nft.expiry > block.timestamp, "NFT expiry date is longer than current time");
+        // Checks that the listing has not expired yet.
+        require(nft.listingExpiry > block.timestamp, "Listing has expired");
 
-        payable(nft.seller).transfer(msg.value);
-        ERC4907(nft.nftAddress).setUser(tokenId, payable(rentee), nft.expiry);
-        marketOwner.transfer(listPrice);
-        nft.user = payable(rentee);
+        uint256 pricePaid = msg.value;
+        uint256 priceToPlatform =  pricePaid * 2 / 10;
+        uint256 priceToSeller = pricePaid - priceToPlatform;
+        payable(nft.seller).transfer(priceToSeller);
+        ERC4907(nft.nftAddress).setUser(tokenId, payable(msg.sender), nft.expiry);
+        marketOwner.transfer(listPrice + priceToPlatform);
+        nft.user = payable(msg.sender);
         nft.currentlyListed = false;
 
         //idToListedToken[tokenId] = nft;
 
         nftRented.increment();
-        emit LTokenRentedOut(nft.nftAddress, tokenId, nft.seller, rentee, msg.value, nft.expiry);
+        emit LTokenRentedOut(nft.nftAddress, tokenId, nft.seller, msg.sender, msg.value, nft.expiry);
     }
 
+    //Overloaded function
+    //Update NFT Listing price only
+    function updateNFT(address _nftAddress, uint256 tokenId, uint256 price) public virtual {
+        LToken storage nft = idToListedToken[tokenId];
+        require(nft.seller == msg.sender, "Only owner can update NFT listing");
+        require(nft.currentlyListed == true, "Can only update existing listing!");
+        require(nft.user == address(0), "Cannot edit NFT listing while NFT is rented");
+        require(nft.expiry > block.timestamp, "NFT has expired, please update expiry date");
+        require(nft.listingExpiry > block.timestamp, "Listing has expired, please update listing expiry");
+        require(price > 0, "Price must be positive");
+
+        idToListedToken[tokenId] = LToken(
+            _nftAddress, tokenId, payable(address(this)), payable(msg.sender), address(0),
+            price, nft.expiry, nft.listingExpiry, true
+        );
+    }
+
+    //Overloaded function
+    //Update NFT expiry date only
+    function updateNFT(address _nftAddress, uint256 tokenId, uint64 expiry, uint64 listingExpiry) public virtual {
+        LToken storage nft = idToListedToken[tokenId];
+        require(nft.seller == msg.sender, "Only owner can update NFT listing");
+        require(nft.currentlyListed == true, "Can only update existing listing!");
+        require(nft.user == address(0), "Cannot edit NFT listing while NFT is rented");
+        require(expiry > block.timestamp, "Expiry date cannot be earlier than current time");
+        require(listingExpiry > block.timestamp, "Listing expiry cannot be earlier than current time");
+
+        idToListedToken[tokenId] = LToken(
+            _nftAddress, tokenId, payable(address(this)), payable(msg.sender), address(0),
+            nft.price, expiry, listingExpiry, true
+        );
+    }
+
+
+    //Overloaded function
+    //Update NFT listing price and expiry
+    function updateNFT(address _nftAddress, uint256 tokenId, uint256 price, uint64 expiry, uint64 listingExpiry) public virtual {
+        LToken storage nft = idToListedToken[tokenId];
+        require(nft.seller == msg.sender, "Only owner can update NFT listing");
+        require(nft.currentlyListed == true, "Can only update existing listing!");
+        require(nft.user == address(0), "Cannot edit NFT listing while NFT is rented");
+        require(expiry > block.timestamp, "Expiry date cannot be earlier than current time");
+        require(listingExpiry > block.timestamp, "Listing expiry cannot be earlier than current time");
+        require(price > 0, "Price must be positive");
+
+        idToListedToken[tokenId] = LToken(
+            _nftAddress, tokenId, payable(address(this)), payable(msg.sender), address(0),
+            price, expiry, listingExpiry, true
+        );
+    }
+
+
     //delist NFT
-    function delistNFT(address _nftAddress, uint256 tokenId) public {
+    function delistNFT(address _nftAddress, uint256 tokenId) public nonReentrant {
         LToken storage nft = idToListedToken[tokenId];
         require(nft.seller == msg.sender, "Only NFT owner can delist");
         require(nft.user == address(0) || nft.expiry < block.timestamp, "User is still using token");
@@ -148,6 +296,17 @@ contract NFTRM is ReentrancyGuard {
         }
     }
 
+    //Early Loan Termination
+    function terminateRental(uint256 tokenId) public {
+        LToken storage nft = idToListedToken[tokenId];
+        require(nft.user == msg.sender, "Only user can terminate rental");
+        require(nft.expiry < block.timestamp, "Cannot terminate already expired loan");
+
+        ERC4907(nft.nftAddress).setUser(tokenId, address(0), nft.expiry);
+        nftRented.decrement();
+        expireNFT(tokenId);
+    }
+
     //Get all NFTs
     function getAllNFTs() public view returns (LToken[] memory) {
         uint nftCount = nftListed.current();
@@ -167,14 +326,14 @@ contract NFTRM is ReentrancyGuard {
     //Gets all currently listed NFT
     function getListedNFTs() public view returns (LToken[] memory) {
         uint256 nftCount = nftListed.current();
-        uint256 nftListed = 0;
+        uint256 nftList = 0;
         for (uint i = 0; i < nftCount; i++) {
             if (idToListedToken[i+1].currentlyListed) {
-                nftListed += 1;
+                nftList += 1;
             }
         }
 
-        LToken[] memory tokens = new LToken[](nftListed);
+        LToken[] memory tokens = new LToken[](nftList);
         uint currIndex = 0;
         
         for (uint i = 0; i < nftCount; i++) {

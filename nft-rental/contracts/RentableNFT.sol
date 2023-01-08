@@ -1,6 +1,6 @@
 pragma solidity >=0.8.0 <0.9.0;
 
-import './ERC4907.sol';
+import './ERC4907/ERC4907.sol';
 
 contract RentableNFT is ERC4907 {
 
