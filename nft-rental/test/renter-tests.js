@@ -30,7 +30,7 @@ const setUpERC721 = async() => {
 it("Renter should not transfer", async() => {
     const NFTRM = await setupMarketplace();
     const rentableNFT = await setupContract();
-    const [owner, renter, person1] = await setupAccounts();
+    const [owner, renter] = await setupAccounts();
 
     let listingFee = await NFTRM.getListingFee();
     listingFee = listingFee.toString();
@@ -45,13 +45,14 @@ it("Renter should not transfer", async() => {
 
     let nftAddress = txRes.events[0].address.toString();
 
-    const lis = await NFTRM.connect(owner).listNFT(nftAddress, tokenId, 1, Math.round(new Date().getTime() / 1000) + 600, {value: listingFee})
+    let expiryDate = Math.round(new Date().getTime() / 1000) + 600
+    const lis = await NFTRM.connect(owner).listNFT(nftAddress, tokenId, 1, expiryDate, expiryDate, {value: listingFee})
     await lis.wait()
 
     console.log("Listed Test NFT");
 
     //Rent NFT to renter for 10 minutes
-    await NFTRM.rentNFT(tokenId, renter.address, {value: 1})
+    await NFTRM.connect(renter).rentNFT(tokenId, {value: 1})
     console.log("Rented Test NFT")
 
     //Check Renter userId
@@ -60,7 +61,10 @@ it("Renter should not transfer", async() => {
     expect(rOf).to.equal(renter.address);
     console.log("Renter is correct!")
 
-    await expect(rentableNFT.safeTransferFrom(renter, person1, tokenId)).to.be.revertedWith("ERC721: caller is not token owner or approved");
+    let p1 = await ethers.getSigners();
+    const person1 = p1[2];
+
+    await expect(rentableNFT.connect(renter)["safeTransferFrom(address,address,uint256)"](renter.address, person1.address, tokenId)).to.be.revertedWith("ERC721: caller is not token owner or approved");
 
 })
 
@@ -71,6 +75,7 @@ it("Renter should be unable to list and delist", async() => {
 
     let listingFee = await NFTRM.getListingFee();
     listingFee = listingFee.toString();
+    console.log(listingFee)
 
     await rentableNFT.approveUser(NFTRM.address);
 
@@ -82,13 +87,14 @@ it("Renter should be unable to list and delist", async() => {
 
     let nftAddress = txRes.events[0].address.toString();
 
-    const lis = await NFTRM.connect(owner).listNFT(nftAddress, tokenId, 1, Math.round(new Date().getTime() / 1000) + 600, {value: listingFee})
+    let expiryDate = Math.round(new Date().getTime() / 1000) + 600
+    const lis = await NFTRM.connect(owner).listNFT(nftAddress, tokenId, 1, expiryDate, expiryDate, {value: (listingFee)})
     await lis.wait()
 
     console.log("Listed Test NFT");
 
     //Rent NFT to renter for 10 minutes
-    await NFTRM.rentNFT(tokenId, renter.address, {value: 1})
+    await NFTRM.connect(renter).rentNFT(tokenId, {value: 1})
     console.log("Rented Test NFT")
 
     //Check Renter userId
@@ -97,10 +103,10 @@ it("Renter should be unable to list and delist", async() => {
     expect(rOf).to.equal(renter.address);
     console.log("Renter is correct!")
 
-    await expect(rentableNFT.connect(renter).listNFT(nftAddress, tokenId, 2, Math.round(new Date().getTime()/1000) + 500, {value: listingFee}))
-    .to.be.revertedWith("ERC721: caller is not token owner or approved");
+    await expect(NFTRM.connect(renter).listNFT(nftAddress, tokenId, 2, expiryDate - 100, expiryDate - 100, {value: (listingFee)}))
+    .to.be.revertedWith("ERC721: Caller is not owner or approved");
 
-    await expect(rentableNFT.connect(renter).delistNFT(nftAddress, tokenId)).to.be.revertedWith("Only NFT owner can delist")
+    await expect(NFTRM.connect(renter).delistNFT(nftAddress, tokenId)).to.be.revertedWith("Only NFT owner can delist")
 
 })
 
@@ -111,6 +117,7 @@ it("Check tokenofOwner to include rental NFTs", async() => {
 
     let listingFee = await NFTRM.getListingFee();
     listingFee = listingFee.toString();
+    console.log(listingFee);
 
     await rentableNFT.approveUser(NFTRM.address);
 
@@ -122,13 +129,14 @@ it("Check tokenofOwner to include rental NFTs", async() => {
 
     let nftAddress = txRes.events[0].address.toString();
 
-    const lis = await NFTRM.connect(owner).listNFT(nftAddress, tokenId, 1, Math.round(new Date().getTime() / 1000) + 600, {value: listingFee})
+    let expiryDate = Math.round(new Date().getTime() / 1000) + 600
+    const lis = await NFTRM.connect(owner).listNFT(nftAddress, tokenId, 1, expiryDate, expiryDate, {value: listingFee})
     await lis.wait()
 
     console.log("Listed Test NFT");
 
     //Rent NFT to renter for 10 minutes
-    await NFTRM.rentNFT(tokenId, renter.address, {value: 1})
+    await NFTRM.connect(renter).rentNFT(tokenId, {value: 1})
     console.log("Rented Test NFT")
 
     //Check Renter userId
@@ -137,6 +145,8 @@ it("Check tokenofOwner to include rental NFTs", async() => {
     expect(rOf).to.equal(renter.address);
     console.log("Renter is correct!")
 
-    let rentalId = rentableNFT.tokenOfOwnerByIndex(renter, 1);
+    let rentalId = await rentableNFT.tokenOfOwnerByIndex(renter.address, 0);
     expect(rentalId).to.equal(tokenId);
+
+    await expect(rentableNFT.tokenOfOwnerByIndex(renter.address, 1)).to.be.revertedWith("ERC4907: Index out of bounds")
 })

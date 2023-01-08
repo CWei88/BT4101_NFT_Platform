@@ -101,7 +101,7 @@ contract ERC4907 is ERC721, IERC4907 {
         require(index < ERC4907.balanceOf(owner), "ERC4907: Index out of bounds");
         uint ownedTokens = super.balanceOf(owner);
 
-        if (index <= ownedTokens) {
+        if (index < ownedTokens) {
             return ERC721Enumerable(owner).tokenOfOwnerByIndex(owner, index);
         } else {
             uint userIndex= index - ownedTokens;

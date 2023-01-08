@@ -17,7 +17,7 @@ module.exports = {
 
 	networks: {
 		hardhat: {
-			chainId: 1337
+			chainId: 31337
 		},
 		goerli: {
 			url: API_URL,
