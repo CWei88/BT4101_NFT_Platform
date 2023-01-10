@@ -136,15 +136,19 @@ contract NFTRM is ReentrancyGuard {
         //Checks that rental is currently listed
         require(nft.currentlyListed == true, "NFT is not listed");
         //Checks that bid timing has not resulted in nft being unusable.
-        require(nft.expiry > block.timestamp, "NFT expiry date is longer than current time");
+        require(expiry > block.timestamp, "Offer expiry date is earlier than current time");
         // Checks that the listing has not expired yet.
         require(nft.listingExpiry > block.timestamp, "Listing has expired");
+        //Checks that expiry bid does not exceed nft expiry time
+        require(nft.expiry >= expiry, "Offer expiry date is longer than listed date");
         
         if (idBids[tokenId][msg.sender].price == 0) {
             numBids[tokenId] += 1;
         }
         idBids[tokenId][msg.sender] = Bid(payable(msg.sender), price, expiry);
         bidAddresses.push(payable(msg.sender));
+
+        emit LTokenBid(nft.nftAddress, tokenId, nft.seller, msg.sender, price, expiry);
     }
     
     //Viewing all bids received by token
@@ -170,16 +174,17 @@ contract NFTRM is ReentrancyGuard {
 
         Bid memory getBid = idBids[tokenId][renter];
         uint256 pricePaid =  getBid.price;
-        uint256 priceToPlatform = pricePaid * 2 / 10;
+        uint256 priceToPlatform = (pricePaid * 2) / 10;
         uint256 priceToSeller = pricePaid - priceToPlatform;
-        payable(nft.seller).transfer(priceToSeller);
-        ERC4907(nft.nftAddress).setUser(tokenId, payable(msg.sender), nft.expiry);
+        console.log("price is %s and %s", listPrice, priceToSeller);
+        (nft.seller).transfer(priceToSeller);
+        ERC4907(nft.nftAddress).setUser(tokenId, renter, nft.expiry);
         marketOwner.transfer(listPrice + priceToPlatform);
-        nft.user = payable(msg.sender);
+        nft.user = renter;
         nft.currentlyListed = false;
 
         nftRented.increment();
-        emit LTokenRentedOut(nft.nftAddress, tokenId, nft.seller, renter, msg.value, nft.expiry);
+        emit LTokenRentedOut(nft.nftAddress, tokenId, nft.seller, renter, getBid.price, nft.expiry);
     }
 
     //Rent an NFT
@@ -417,6 +422,11 @@ contract NFTRM is ReentrancyGuard {
         }
 
         return tokens;
+    }
+
+    //Get a specific NFT
+    function getNFT(uint256 tokenId) public view returns (LToken memory) {
+        return idToListedToken[tokenId];
     }
 
 
