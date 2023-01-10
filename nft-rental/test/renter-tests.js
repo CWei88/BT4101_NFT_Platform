@@ -145,8 +145,19 @@ it("Check tokenofOwner to include rental NFTs", async() => {
     expect(rOf).to.equal(renter.address);
     console.log("Renter is correct!")
 
+    //Checks that 1 token is listed for Renter
+    expect(await rentableNFT.balanceOf(renter.address)).to.equal(1);
+
     let rentalId = await rentableNFT.tokenOfOwnerByIndex(renter.address, 0);
     expect(rentalId).to.equal(tokenId);
 
     await expect(rentableNFT.tokenOfOwnerByIndex(renter.address, 1)).to.be.revertedWith("ERC4907: Index out of bounds")
+
+    await network.provider.send('evm_increaseTime', [610])
+    await network.provider.send('evm_mine')
+
+    let postRentalCount = await rentableNFT.balanceOf(renter.address);
+    expect(postRentalCount).to.equal(0)
+
+    await expect(rentableNFT.tokenOfOwnerByIndex(renter.address, 0)).to.be.revertedWith("ERC4907: Index out of bounds")
 })
