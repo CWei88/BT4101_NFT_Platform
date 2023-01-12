@@ -14,10 +14,11 @@ module.exports = {
 			}
 		}
 	},
+	defaultNetwork: "hardhat",
 
 	networks: {
 		hardhat: {
-			chainId: 31337
+			chainId: 31337,
 		},
 		goerli: {
 			url: API_URL,

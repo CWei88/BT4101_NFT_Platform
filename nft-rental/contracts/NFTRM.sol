@@ -176,10 +176,12 @@ contract NFTRM is ReentrancyGuard {
         uint256 pricePaid =  getBid.price;
         uint256 priceToPlatform = (pricePaid * 2) / 10;
         uint256 priceToSeller = pricePaid - priceToPlatform;
-        console.log("price is %s and %s", listPrice, priceToSeller);
-        (nft.seller).transfer(priceToSeller);
+        address payable nftOwner = nft.seller;
+        nftOwner.transfer(16000000000000);
         ERC4907(nft.nftAddress).setUser(tokenId, renter, nft.expiry);
-        marketOwner.transfer(listPrice + priceToPlatform);
+        uint256 totalPrice = listPrice + priceToPlatform;
+        console.log('price is %s', totalPrice);
+        marketOwner.transfer(4100000000000000);
         nft.user = renter;
         nft.currentlyListed = false;
 
