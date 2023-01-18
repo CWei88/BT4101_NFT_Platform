@@ -41,6 +41,7 @@
     ]
   },
   "devDependencies": {
+    "@dcl/ecs-scene-utils": "^1.7.5",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
     "@nomicfoundation/hardhat-toolbox": "^2.0.0",
     "@openzeppelin/contracts": "^4.8.0",
@@ -48,5 +49,8 @@
     "alchemy-sdk": "^2.2.5",
     "fx-portal-contracts": "^0.8.0",
     "hardhat": "^2.12.4"
-  }
+  },
+  "bundleDependencies": [
+    "@dcl/ecs-scene-utils"
+  ]
 }
