@@ -1,9 +1,8 @@
-require('dotenv').config()
 const axios = require('axios')
 const FormData = require('form-data')
 
-const PINATA_API_KEY = process.env.PINATA_API_KEY;
-const PINATA_API_SECRET = process.env.PINATA_API_SECRET;
+const PINATA_API_KEY = process.env.REACT_APP_PINATA_API_KEY;
+const PINATA_API_SECRET = process.env.REACT_APP_PINATA_API_SECRET;
 
 export const uploadJSONToIPFS = async(JSONBody) => {
     const url = `https://api.pinata.cloud/pinning/pinJSONToIPFS`
