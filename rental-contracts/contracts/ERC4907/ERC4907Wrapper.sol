@@ -14,6 +14,8 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver {
 
     event TokenUnWrapped(address nftAddress, uint256 tokenId);
 
+    bytes4 public constant InterfaceIERC4907 = type(IERC4907).interfaceId;
+
     constructor(address nftAddress, string memory _name, string memory _symbol) ERC4907(_name, _symbol) {
         _tokenAddress = nftAddress;
     }
@@ -59,7 +61,6 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver {
     function getAddress() public view returns (address) {
         return address(this);
     }
-
 
     /// @dev See {IERC165-supportsInterface}.
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC4907) returns (bool) {

@@ -3,11 +3,12 @@ pragma solidity ^0.8.17;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "hardhat/console.sol";
 import "./ERC4907/ERC4907.sol";
 import "./ERC4907/ERC4907Wrapper.sol";
 
-contract NFTRM is ReentrancyGuard {
+contract NFTRM is ReentrancyGuard, IERC721Receiver {
     //Global Variables
     using Counters for Counters.Counter;
     //Check number of nftRentedOut
@@ -17,6 +18,9 @@ contract NFTRM is ReentrancyGuard {
     address payable marketOwner;
     //Fee charged by platform to list NFT.
     uint256 listPrice = 0.01 ether;
+
+    //Get ERC4907 interfaceID
+    bytes4 private constant IID_ERC4907 = type(IERC4907).interfaceId;
 
     mapping(uint256 => LToken) private idToListedToken;
     mapping(uint256 => mapping(address => Bid)) private idBids;
@@ -103,6 +107,10 @@ contract NFTRM is ReentrancyGuard {
         marketOwner = payable(msg.sender);
     }
 
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data) public virtual override returns(bytes4){
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
 
     //Listing NFT on Marketplace
     function listNFT(address _nftAddress, uint256 tokenId, uint256 price, uint64 expiry, uint64 listingExpiry) public payable nonReentrant onlyOwner(_nftAddress, tokenId) {
@@ -116,7 +124,9 @@ contract NFTRM is ReentrancyGuard {
         require(listingExpiry > block.timestamp, "Listing expiry cannot be negative");
         require(listingExpiry <= expiry, "Expiry time cannot be shorter than listing expiry");
 
-        ERC4907(_nftAddress).transferFrom(msg.sender, address(this), tokenId);
+        require(_nftAddress.supportsInterface(IID_ERC4907) == true, "Token is not ERC4907, please wrap token");
+
+        ERC4907(_nftAddress).safeTransferFrom(msg.sender, address(this), tokenId);
 
         nftListed.increment();
 
@@ -177,11 +187,11 @@ contract NFTRM is ReentrancyGuard {
         uint256 priceToPlatform = (pricePaid * 2) / 10;
         uint256 priceToSeller = pricePaid - priceToPlatform;
         address payable nftOwner = nft.seller;
-        nftOwner.transfer(16000000000000);
+        nftOwner.transfer(priceToSeller);
         ERC4907(nft.nftAddress).setUser(tokenId, renter, nft.expiry);
         uint256 totalPrice = listPrice + priceToPlatform;
         console.log('price is %s', totalPrice);
-        marketOwner.transfer(4100000000000000);
+        marketOwner.transfer(priceToPlatform);
         nft.user = renter;
         nft.currentlyListed = false;
 

@@ -776,8 +776,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\NFTRM.sol": {
-      "lastModificationDate": 1674639490243,
-      "contentHash": "403ec6cce76b1579b2bbbcf1ce7a6f0f",
+      "lastModificationDate": 1674912090801,
+      "contentHash": "6d4db88edf8abf777548b98689103071",
       "sourceName": "contracts/NFTRM.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -806,6 +806,7 @@
         "@openzeppelin/contracts/utils/Counters.sol",
         "@openzeppelin/contracts/token/ERC721/ERC721.sol",
         "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+        "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol",
         "hardhat/console.sol",
         "./ERC4907/ERC4907.sol",
         "./ERC4907/ERC4907Wrapper.sol"
