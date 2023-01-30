@@ -1,15 +1,22 @@
-const { ethers, deployments } = require("hardhat");
+require('dotenv').config()
+const {ethers} = require('hardhat')
+
+const PUBLIC_KEY = process.env.PUBLIC_KEY
+
+const TOKEN_URI = `https://gateway.pinata.cloud/ipfs/QmPZQxFzkvSiSyVjz1gXb1detb4Vaou4bK39YiiBApevUz`
+
+const contract = require('../artifacts/contracts/RentableNFT.sol/RentableNFT.json')
+const contractAddress = '0x0E99b6eEAF4777b8D3b9A6dEd29a363df43adED3'
 
 async function mint() {
-    const basicNFTContract = await ethers.getContractFactory("BasicNFT")
-    const bNC = await basicNFTContract.deploy();
-
-    await bNC.deployed();
-    console.log("Contract deployed to: ", bNC.address)
+    const NFT = await ethers.getContractAt(contract.abi, contractAddress)
+    const tx = await NFT.mint(PUBLIC_KEY, TOKEN_URI)
+    const recp = await tx.wait()
+    console.log("The hash of the transaction is:", recp.transactionHash)
 }
 
 mint().then(() => process.exit(0))
 .catch((err) => {
-    console.error(err)
+    console.log(err)
     process.exit(1)
 })

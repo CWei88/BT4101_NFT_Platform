@@ -19,6 +19,7 @@ async function main() {
     fs.writeFileSync('./src/NFTRM.json', JSON.stringify(data));
 
     console.log("Marketplace deployed!")
+    console.log(marketplace.address)
 }
 
 main().then(() => process.exit(0))

@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "hardhat/console.sol";
 import "./ERC4907/ERC4907.sol";
 import "./ERC4907/ERC4907Wrapper.sol";
@@ -124,7 +125,7 @@ contract NFTRM is ReentrancyGuard, IERC721Receiver {
         require(listingExpiry > block.timestamp, "Listing expiry cannot be negative");
         require(listingExpiry <= expiry, "Expiry time cannot be shorter than listing expiry");
 
-        require(_nftAddress.supportsInterface(IID_ERC4907) == true, "Token is not ERC4907, please wrap token");
+        require(IERC165(_nftAddress).supportsInterface(IID_ERC4907) == true, "Token is not ERC4907, please wrap token");
 
         ERC4907(_nftAddress).safeTransferFrom(msg.sender, address(this), tokenId);
 

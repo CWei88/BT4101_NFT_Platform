@@ -1,8 +1,12 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import './ERC4907/ERC4907.sol';
+import '@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol';
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract RentableNFT is ERC4907 {
+    using Counters for Counters.Counter;
+    Counters.Counter private tokenIds;
 
     modifier onlyOwner(uint256 _tokenId) {
         require(_isApprovedOrOwner(msg.sender, _tokenId), "ERC721: Caller is not owner or approved");
@@ -13,9 +17,11 @@ contract RentableNFT is ERC4907 {
 
     constructor (string memory _name, string memory _symbol) ERC4907(_name, _symbol) {}
 
-    function mint(uint256 _tokenId, string memory _tokenURI) public { 
-        _safeMint(msg.sender, _tokenId);
-        tokenURIs[_tokenId] = _tokenURI;
+    function mint(address to, string memory _tokenURI) public { 
+        tokenIds.increment();
+        uint256 currTokenId = tokenIds.current();
+        _safeMint(to, currTokenId);
+        tokenURIs[currTokenId] = _tokenURI;
     }
 
     function rent(uint256 _tokenId, address _user, uint64 _expires) public onlyOwner(_tokenId) {
@@ -28,6 +34,10 @@ contract RentableNFT is ERC4907 {
 
     function approveUser(address user) public {
         setApprovalForAll(user, true);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId) public virtual override {
+        super.safeTransferFrom(from, to, tokenId);
     }
     
 }

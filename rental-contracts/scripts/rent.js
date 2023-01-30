@@ -41,7 +41,7 @@ async function main() {
 
     fs.writeFileSync('./NFT.json', JSON.stringify(NFTdata))
 
-    let token = await rNFT.connect(owner).mint(1, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+    let token = await rNFT.mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
     let tokenRes = await token.wait();
 
     let listingFee = await marketplace.getListingFee();
@@ -88,13 +88,12 @@ async function ERC721Rent() {
         [marketplace.address]: "MARKETPLACE"
     }
 
-
     const DiffTypeNFT = await ethers.getContractFactory("DiffTypeNFT")
     const dNFT = await DiffTypeNFT.deploy();
     await dNFT.deployed();
 
     const wrapper = await ethers.getContractFactory("ERC4907Wrapper")
-    const wrap = await wrapper.deploy();
+    const wrap = await wrapper.deploy(dNFT.address, "wNFT", "WR");
     await wrap.deployed();
 
     let token = await dNFT.connect(owner).mint('QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
@@ -106,10 +105,18 @@ async function ERC721Rent() {
     const TOKEN_ID = tokenRes.events[0].args.tokenId
     console.log(TOKEN_ID)
 
-    let nftAddress = tokenRes.events[0].address.toString();
+    await dNFT.connect(owner).approve(wrap.address, TOKEN_ID)
+
+    const wrapTok = await wrap.connect(owner).wrapToken(TOKEN_ID);
+    const wrapTokRes = await wrapTok.wait();
+
+    let nftAddress = wrapTokRes.events[2].address.toString();
     console.log(nftAddress)
 
-    await dNFT.connect(owner).approve(marketplace.address, TOKEN_ID)
+    //await dNFT.connect(owner).approve(marketplace.address, TOKEN_ID)
+    console.log("dNFT approved")
+    await wrap.connect(owner).approve(marketplace.address, TOKEN_ID)
+    console.log("wrap approved")
 
     const listing = await marketplace.connect(owner).listNFT(nftAddress, TOKEN_ID, 1, Math.round(new Date().getTime() / 1000) + 700, Math.round(new Date().getTime() / 1000) + 700, {value: listingFee})
     await listing.wait()
@@ -121,14 +128,12 @@ async function ERC721Rent() {
 
     console.log("NFT Rented!")
 
-    const newOwner = await dNFT.ownerOf(TOKEN_ID)
-    const newUser = await dNFT.userOf(TOKEN_ID)
-    console.log(`New user of Token ID ${TOKEN_ID} is ${newUser} with identity of ${ID[newUser]}`)
+    const newOwner = await wrap.ownerOf(TOKEN_ID)
     console.log(`Owner of TokenID ${TOKEN_ID} is ${newOwner} with identity of ${ID[newOwner]}`)
 
 }
 
-main().then(
+/*main().then(
     ERC721Rent().then(() => process.exit(0))
     .catch((err) => {
         console.log("ERC721 Rent")
@@ -138,9 +143,9 @@ main().then(
 .catch((err) => {
     console.log(err)
     process.exit(1)
-})
+})*/
 
-ERC721Rent().then(() => process.exit(0))
+main().then(() => process.exit(0))
 .catch((err) => {
     console.log(err)
     process.exit(1)

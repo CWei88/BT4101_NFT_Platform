@@ -1,24 +1,24 @@
-const {Alchemy, Network, Wallet, Utils} = require('alchemy-sdk')
+const {Alchemy, Network} = require('alchemy-sdk')
 require('dotenv').config();
 
-const { API_KEY, PRIVATE_KEY } = process.env;
-
-const settings = {
-    apiKey: API_KEY,
+const config = {
+    apiKey: process.env.ALCHEMY_API_KEY,
     network: Network.ETH_GOERLI
 }
 
-const alchemy = new Alchemy(settings)
-
-let wallet = new Wallet(PRIVATE_KEY)
+const alchemy = new Alchemy(config);
 
 async function main() {
-    const nonce = await alchemy.core.getTransactionCount(
-        wallet.address, "latest"
-    );
+    const address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
 
-    let transaction = {
-        
-    }
+    const tokenId = 1;
+
+    const owner = await alchemy.nft.getOwnersForNft(address, tokenId)
+    console.log(owner)
 }
 
+main().then(() => process.exit(0))
+.catch((err) => {
+    console.log(err)
+    process.exit(1)
+})
