@@ -2,7 +2,7 @@ require('dotenv').config()
 const {ethers} = require('hardhat')
 
 const marketplaceContract = require('../artifacts/contracts/NFTRM.sol/NFTRM.json')
-const contractAddress = '0xf3345f6Aab4fBd7E2435956295827fC0E280530e'
+const contractAddress = '0xBC58a97BEC832919FCD540985eCE836b57d1Ce19'
 
 async function listAndRent() {
     const Market = await ethers.getContractAt("NFTRM", contractAddress)

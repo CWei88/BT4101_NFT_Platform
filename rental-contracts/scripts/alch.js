@@ -9,12 +9,10 @@ const config = {
 const alchemy = new Alchemy(config);
 
 async function main() {
-    const address = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"
-
-    const tokenId = 1;
-
-    const owner = await alchemy.nft.getOwnersForNft(address, tokenId)
-    console.log(owner)
+  // Get all NFTs
+  const nfts = await alchemy.nft.getOwnersForNft('0x0E99b6eEAF4777b8D3b9A6dEd29a363df43adED3', '1')
+  // Print NFTs
+  console.log(nfts);
 }
 
 main().then(() => process.exit(0))
@@ -22,3 +20,9 @@ main().then(() => process.exit(0))
     console.log(err)
     process.exit(1)
 })
+
+/*isHolder().then(() => process.exit(0))
+.catch((err) => {
+    console.log(err)
+    process.exit(1)
+})*/
