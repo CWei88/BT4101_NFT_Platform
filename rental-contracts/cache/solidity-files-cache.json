@@ -1005,8 +1005,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\DiffTypeNFT.sol": {
-      "lastModificationDate": 1672221531287,
-      "contentHash": "9cc4fab322e1161e2c43fa6c2689c08f",
+      "lastModificationDate": 1675654741244,
+      "contentHash": "ad1fc592eabf5dfc839bd6a82bf93a62",
       "sourceName": "contracts/DiffTypeNFT.sol",
       "solcConfig": {
         "version": "0.8.17",

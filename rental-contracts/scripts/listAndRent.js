@@ -2,9 +2,9 @@ require('dotenv').config()
 const {ethers} = require('hardhat')
 
 const marketplaceContract = require('../artifacts/contracts/NFTRM.sol/NFTRM.json')
-const contractAddress = '0xBC58a97BEC832919FCD540985eCE836b57d1Ce19'
+const contractAddress = '0xacFD42d69790aabdE806ae992097aFF284d1E64F'
 
-async function listAndRent() {
+async function list() {
     const Market = await ethers.getContractAt("NFTRM", contractAddress)
 
     console.log("Getting first token to list")
@@ -28,16 +28,11 @@ async function listAndRent() {
     let listTx = await Market.connect(ownerSigner).listNFT(NFTAddress, tokenId, 1, Math.round(new Date().getTime() / 1000) + 900, Math.round(new Date().getTime() / 1000) + 900, {value: mktFee})
     await listTx.wait()
 
-    console.log("Renting NFT")
-    const renter = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
-    const renterSigner = await ethers.getSigner(renter)
-    let rentTx = await Market.connect(renterSigner).rentNFT(tokenId, {value: 1})
-    await rentTx.wait();
-    console.log("NFT Rented")
+    console.log("NFT Listed")
    
 }
 
-listAndRent().then(() => process.exit(0))
+list().then(() => process.exit(0))
 .catch((err) => {
     console.log(err)
     process.exit(1)
