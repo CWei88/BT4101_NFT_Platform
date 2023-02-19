@@ -39,6 +39,7 @@
     ]
   },
   "devDependencies": {
+    "@graphprotocol/client-cli": "^2.2.16",
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",
     "hardhat": "^2.12.6"
   }
