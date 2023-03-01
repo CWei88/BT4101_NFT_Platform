@@ -74,16 +74,16 @@ async function delist() {
     process.exit(1)
 })*/
 
-rent().then(() => process.exit(0))
-.catch((err) => {
-    console.log(err)
-    process.exit(1)
-})
-
-/*delist().then(() => process.exit(0))
+/*rent().then(() => process.exit(0))
 .catch((err) => {
     console.log(err)
     process.exit(1)
 })*/
+
+delist().then(() => process.exit(0))
+.catch((err) => {
+    console.log(err)
+    process.exit(1)
+})
 
 

@@ -115,7 +115,7 @@ contract NFTRM is ReentrancyGuard, IERC721Receiver {
 
     //Listing NFT on Marketplace
     function listNFT(address _nftAddress, uint256 tokenId, uint256 price, uint64 expiry, uint64 listingExpiry) public payable nonReentrant onlyOwner(_nftAddress, tokenId) {
-        //Checks if sender has enough ETH to pay for listing
+        //Checks that sender has sent sufficient value to pay for listing
         require(msg.value >= listPrice, "Not enough ETH to pay for platform fees");
         //Ensure price is not negative
         require(price > 0, "Price cannot be negative");
