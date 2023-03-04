@@ -34,7 +34,6 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     struct Listing { //Listing struct to manage rental listings.
         address contractAddress;
         uint256 tokenId;
-        uint256 expiry;
         address payable owner;
         uint256 pricePerDay;
         uint256 minRentalDays;
@@ -63,7 +62,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         return IERC721Receiver.onERC721Received.selector;
     }
 
-    event TokenListed(address indexed _nftAddress, uint256 indexed tokenId, uint256 expiry, uint256 pricePerDay, uint256 minRentalDays, uint256 maxRentalDays, uint256 listingExpiry);
+    event TokenListed(address indexed _nftAddress, uint256 indexed tokenId, uint256 pricePerDay, uint256 minRentalDays, uint256 maxRentalDays, uint256 listingExpiry);
     event TokenRented(address indexed _nftAddress, uint256 indexed tokenId, address rentee, uint256 pricePerDay, uint256 rentalDays, address _sender);
     event TokenDelisted(address _nftAddress, uint256 tokenId, bool availableToRent);
     event TokenClaimed(address indexed _nftAddress, uint256 indexed tokenId, address _sender);
@@ -98,29 +97,29 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     }
 
     //Listing function to list NFTs.
-    function listNFT(address _nftAddress, uint256 tokenId, uint256 pricePerDay, uint256 expiry, uint256 minRentalDays, uint256 maxRentalDays, uint256 listingExpiry) public payable nonReentrant onlyOwner(_nftAddress, tokenId) {
+    function listNFT(address _nftAddress, uint256 tokenId, uint256 pricePerDay, uint256 minRentalDays, uint256 maxRentalDays, uint256 listingExpiry) public payable nonReentrant onlyOwner(_nftAddress, tokenId) {
         //Ensure that lister has sent ether to pay for listingfee.
         require(msg.value >= listingFee, "Not enough ETH to pay for platform fees");
         //Ensure price is not negative
-        require(pricePerDay > 0, "Price cannot be negative");
-        //Ensure expiry date is legit
-        require(expiry > block.timestamp, "Expiry date cannot be earlier than now.");
+        require(pricePerDay > 0, "Price must be higher than zero");
         //Ensure listing expiry date is legit, and less than rental expiry.
-        require(listingExpiry > block.timestamp, "Listing expiry cannot be negative");
-        require(listingExpiry <= expiry, "Expiry time cannot be shorter than listing expiry");
+        require(listingExpiry > block.timestamp, "Listing expiry must be longer than current time.");
+
         //Checks if token is ERC4907
         require(IERC165(_nftAddress).supportsInterface(IID_ERC4907) == true, "Token is not ERC4907, please wrap token");
 
         ERC4907(_nftAddress).safeTransferFrom(msg.sender, address(this), tokenId);
 
-        Listing memory lister = Listing(_nftAddress, tokenId, expiry, payable(msg.sender), pricePerDay, minRentalDays, maxRentalDays, listingExpiry, true);
+        Listing memory lister = Listing(_nftAddress, tokenId, payable(msg.sender), pricePerDay, minRentalDays, maxRentalDays, listingExpiry, true);
         rentalListings[_nftAddress][tokenId] = lister;
 
         uint256 index = listedTokens.length;
         listingIndex[_nftAddress][tokenId] = index;
         listedTokens.push(lister);
 
-        emit TokenListed(_nftAddress, tokenId, expiry, pricePerDay, minRentalDays, maxRentalDays, listingExpiry);
+        feeCollector.transfer(msg.value);
+
+        emit TokenListed(_nftAddress, tokenId, pricePerDay, minRentalDays, maxRentalDays, listingExpiry);
     }
 
     /*function bidNFT(address _nftAddress, uint256 tokenId, uint256 pricePerDay, uint256 rentalDays) public payable nonReentrant {
@@ -173,11 +172,10 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         uint256 totalRentalPrice = token.pricePerDay * rentalDays;
         uint256 rentalExpiryTime = block.timestamp + (rentalDays * 24 * 60 * 60);
         require(token.listingExpiry > block.timestamp, "Listing has expired");
-        require(token.expiry > rentalExpiryTime, "Token not available for loan of this duration");
-        require(msg.sender.balance >= totalRentalPrice, "Insufficient balance to pay for rental");
+        require(msg.value >= totalRentalPrice, "Insufficient ether to pay for rental");
         require(token.availableToRent == true, "Token is not available for Rental");
 
-        payable(token.owner).transfer(totalRentalPrice);
+        payable(token.owner).transfer(msg.value);
         ERC4907(token.contractAddress).setUser(tokenId, msg.sender, uint64(rentalExpiryTime));
 
         Rental memory rentedOut = Rental(token.owner, payable(msg.sender), rentalExpiryTime);
@@ -195,13 +193,17 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
 
         require(token.owner == msg.sender, "Only owner can delist");
         require(rentedToken.rentalEnd == 0 || rentedToken.rentalEnd < block.timestamp, "Token is rented out");
+        require(ERC4907(_nftAddress).userOf(tokenId) == address(0), "Rental has not ended!");
 
-        Listing memory lister = Listing(_nftAddress, tokenId, token.expiry, payable(msg.sender), token.pricePerDay, token.minRentalDays, token.maxRentalDays, token.listingExpiry, false);
+        Listing memory lister = Listing(_nftAddress, tokenId, payable(msg.sender), token.pricePerDay, token.minRentalDays, token.maxRentalDays, token.listingExpiry, false);
         rentalListings[_nftAddress][tokenId] = lister;
 
+        uint256 index = listingIndex[_nftAddress][tokenId];
+        listedTokens[index] = lister;
+
         if (rentedToken.rentalEnd != 0) {
-            uint256 index = rentalIndex[_nftAddress][tokenId];
-            delete tokensRented[index];
+            uint256 index2 = rentalIndex[_nftAddress][tokenId];
+            delete tokensRented[index2];
             delete currentlyRented[_nftAddress][tokenId];
         }
 
@@ -243,6 +245,28 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     //Getter function for marketplace
     function getAllListings() public view returns (Listing[] memory) {
         return listedTokens;
+    }
+
+    function getAvailableListings() public view returns (Listing[] memory) {
+        uint256 numAvailable = 0;
+        for (uint256 i=0; i < listedTokens.length; i++) {
+            Listing memory listed = listedTokens[i];
+            if (listed.availableToRent) {
+                numAvailable += 1;
+            }
+        }
+
+        Listing[] memory available = new Listing[](numAvailable);
+        uint256 j =0;
+        for (uint256 i=0; i < listedTokens.length; i++) { 
+            Listing memory listed = listedTokens[i];
+            if (listed.availableToRent) {
+                available[j] = listed;
+                j += 1;
+            }
+        }
+
+        return available;
     }
 
     function getListingFee() public view returns(uint256) {

@@ -776,8 +776,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\NFTRM.sol": {
-      "lastModificationDate": 1674982142233,
-      "contentHash": "db22ba5fd5aa49cfbabbd4c254551d63",
+      "lastModificationDate": 1677662455077,
+      "contentHash": "2cbed345b116855f1afb73c6f779701a",
       "sourceName": "contracts/NFTRM.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -1041,6 +1041,50 @@
       ],
       "artifacts": [
         "DiffTypeNFT"
+      ]
+    },
+    "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\MarketplaceDC.sol": {
+      "lastModificationDate": 1677919347084,
+      "contentHash": "a2ca325d3b592f98a3a14410c67a7ced",
+      "sourceName": "contracts/MarketplaceDC.sol",
+      "solcConfig": {
+        "version": "0.8.17",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@openzeppelin/contracts/utils/Counters.sol",
+        "@openzeppelin/contracts/token/ERC721/ERC721.sol",
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol",
+        "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol",
+        "@openzeppelin/contracts/utils/introspection/ERC165.sol",
+        "hardhat/console.sol",
+        "./ERC4907/ERC4907.sol",
+        "./ERC4907/ERC4907Wrapper.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.17"
+      ],
+      "artifacts": [
+        "MarketplaceDC"
       ]
     }
   }
