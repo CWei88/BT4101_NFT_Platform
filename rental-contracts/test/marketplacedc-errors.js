@@ -41,16 +41,19 @@ describe("Marketplace Errors", function() {
         let nftAddress = txRes.events[0].address.toString();
     
         await rentableNFT.approve(marketplace.address, tokenId);
+        let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60)
 
-        await expect(marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, Math.round(new Date().getTime() / 1000) + (1*24*60*60), {value: 0}))
+        await expect(marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 0}))
         .to.be.revertedWith("Not enough ETH to pay for platform fees")
         console.log("ETH error tested successfully!")
 
-        await expect(marketplace.connect(owner).listNFT(nftAddress, tokenId, 0, 0, 1, Math.round(new Date().getTime() / 1000) + (1*24*60*60), {value: 1}))
+        await expect(marketplace.connect(owner).listNFT(nftAddress, tokenId, 0, 0, 1, expiryTime, {value: 1}))
         .to.be.revertedWith("Price must be higher than zero");
         console.log("Listing price error successfully tested.")
 
-        await expect(marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, Math.round(new Date().getTime() / 1000) - 100, {value: 1}))
+        let falseExpiry = Math.round(new Date().getTime() / 1000) - 100
+
+        await expect(marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, falseExpiry, {value: 1}))
         .to.be.revertedWith("Listing expiry must be longer than current time.");
         console.log("Listing expiry successfully tested.")
     })
@@ -69,11 +72,12 @@ describe("Marketplace Errors", function() {
         let nftAddress = txRes.events[0].address.toString();
     
         await rentableNFT.approve(marketplace.address, tokenId);
+        let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60)
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 1, 3, Math.round(new Date().getTime() / 1000) + (1*24*60*60), {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 1, 3, expiryTime, {value: 1});
         await listNFT.wait();
         console.log(`Listed NFT ${tokenId}`);
-        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress, tokenId, 10, 1, 3, Math.round(new Date().getTime() / 1000) + (1*24*60*60))
+        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress, tokenId, 10, 1, 3, expiryTime)
 
         await expect(marketplace.connect(renter).rentNFT(nftAddress, tokenId, 0, {value: 10})).to.be.revertedWith("Cannot rent for less than minimum")
         await expect(marketplace.connect(renter).rentNFT(nftAddress, tokenId, 4, {value: 10})).to.be.revertedWith("Cannot rent for more than maximum")
@@ -145,11 +149,13 @@ describe("Marketplace Errors", function() {
         let nftAddress = txRes.events[0].address.toString();
     
         await rentableNFT.approve(marketplace.address, tokenId);
+
+        let expiryTime = Math.round(new Date().getTime() / 1000) + (2*24*60*60)
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, Math.round(new Date().getTime() / 1000) + (2*24*60*60), {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1});
         await listNFT.wait();
         console.log(`Listed NFT ${tokenId}`);
-        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress, tokenId, 10, 0, 1, Math.round(new Date().getTime() / 1000) + (2*24*60*60))
+        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress, tokenId, 10, 0, 1, expiryTime)
 
         const rental = await marketplace.connect(renter).rentNFT(nftAddress, tokenId, 1, {value: 10})
         await rental.wait();
@@ -183,5 +189,51 @@ describe("Marketplace Errors", function() {
         expect(tokenOwner).to.equal(owner.address);
         console.log("NFT transferred correctly");
 
+    })
+
+    it("Test emergency stop", async() => {
+        const marketplace = await setUpMarketplace();
+        const rentableNFT = await setupContract();
+        const [owner, renter] = await setupAccounts();
+
+        //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
+        const tx = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes = await tx.wait();
+
+        const tx2 = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes2 = await tx2.wait();
+    
+        const tokenId = txRes.events[0].args.tokenId
+        console.log(tokenId)
+        let nftAddress = txRes.events[0].address.toString();
+
+        const tokenId2 = txRes2.events[0].args.tokenId
+        console.log(tokenId)
+        let nftAddress2 = txRes2.events[0].address.toString();
+    
+        await rentableNFT.approve(marketplace.address, tokenId);
+        await rentableNFT.approve(marketplace.address, tokenId2);
+
+        let expiryTime = Math.round(new Date().getTime() / 1000) + (3*24*60*60)
+
+        let listTransaction = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1})
+        await listTransaction.wait();
+        
+        const accounts = await ethers.getSigners();
+        let acc = accounts[2]
+        let callStop = await marketplace.connect(acc).stopAll();
+
+        await expect(marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, {value: 1})).to.be.revertedWith("Listing and rental has been halted");
+        await expect(marketplace.connect(renter).rentNFT(nftAddress, tokenId, 1, {value: 10})).to.be.revertedWith("Listing and rental has been halted");
+
+        let resumeCall = await marketplace.connect(acc).resumeAll();
+
+        let lis = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, {value: 1})
+        await lis.wait();
+        await expect(lis).to.emit(marketplace, "TokenListed").withArgs(nftAddress2, tokenId2, 10, 0, 1, expiryTime)
+
+        let rental = await marketplace.connect(renter).rentNFT(nftAddress, tokenId, 1, {value: 10})
+        await rental.wait();
+        await expect(rental).to.emit(marketplace, "TokenRented").withArgs(nftAddress, tokenId, renter.address, 1, 10, renter.address);
     })
 })

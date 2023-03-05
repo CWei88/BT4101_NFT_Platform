@@ -80,6 +80,16 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         _;
     }
 
+    modifier transactionStopped() {
+        require(allStop == true, "Transaction has not been halted");
+        _;
+    }
+
+    modifier transactionResumed() {
+        require(allStop == false, "Listing and rental has been halted");
+        _;
+    }
+
     constructor(address _owner, address _feeCollector, uint256 _fee) {
         marketOwner = _owner;
         feeCollector = payable(_feeCollector);
@@ -97,7 +107,8 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     }
 
     //Listing function to list NFTs.
-    function listNFT(address _nftAddress, uint256 tokenId, uint256 pricePerDay, uint256 minRentalDays, uint256 maxRentalDays, uint256 listingExpiry) public payable nonReentrant onlyOwner(_nftAddress, tokenId) {
+    function listNFT(address _nftAddress, uint256 tokenId, uint256 pricePerDay, uint256 minRentalDays, uint256 maxRentalDays, uint256 listingExpiry) 
+    public payable nonReentrant onlyOwner(_nftAddress, tokenId) transactionResumed {
         //Ensure that lister has sent ether to pay for listingfee.
         require(msg.value >= listingFee, "Not enough ETH to pay for platform fees");
         //Ensure price is not negative
@@ -165,7 +176,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
 
     }*/
 
-    function rentNFT(address _nftAddress, uint256 tokenId, uint64 rentalDays) public payable nonReentrant {
+    function rentNFT(address _nftAddress, uint256 tokenId, uint64 rentalDays) public payable nonReentrant transactionResumed {
         Listing storage token = rentalListings[_nftAddress][tokenId];
         require(rentalDays >= token.minRentalDays, "Cannot rent for less than minimum");
         require(rentalDays <= token.maxRentalDays, "Cannot rent for more than maximum");
