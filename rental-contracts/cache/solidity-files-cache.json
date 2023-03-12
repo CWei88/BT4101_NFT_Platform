@@ -562,7 +562,7 @@
         "version": "0.8.17",
         "settings": {
           "optimizer": {
-            "enabled": false,
+            "enabled": true,
             "runs": 200
           },
           "outputSelection": {
@@ -1044,8 +1044,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\MarketplaceDC.sol": {
-      "lastModificationDate": 1678611255889,
-      "contentHash": "9b873f909fdb15f84b3ec36c95431e92",
+      "lastModificationDate": 1678614487885,
+      "contentHash": "8440344fc840c0b37b3adc3d65eed02a",
       "sourceName": "contracts/MarketplaceDC.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -1076,6 +1076,7 @@
         "@openzeppelin/contracts/security/ReentrancyGuard.sol",
         "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol",
         "@openzeppelin/contracts/utils/introspection/ERC165.sol",
+        "@openzeppelin/contracts/utils/math/SafeMath.sol",
         "hardhat/console.sol",
         "./ERC4907/ERC4907.sol",
         "./ERC4907/ERC4907Wrapper.sol"
