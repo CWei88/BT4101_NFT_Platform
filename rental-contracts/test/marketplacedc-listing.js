@@ -91,6 +91,45 @@ describe("Marketplace Test", function() {
         console.log("Rental has expired!");
     })
 
+    it("Bid NFT", async() => {
+        const marketplace = await setUpMarketplace();
+        const rentableNFT = await setupContract();
+        const [owner, renter] = await setupAccounts();
+
+        //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
+        const tx = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes = await tx.wait();
+    
+        const tokenId = txRes.events[0].args.tokenId
+        console.log(tokenId)
+        let nftAddress = txRes.events[0].address.toString();
+
+        await rentableNFT.approve(marketplace.address, tokenId);
+        let expiryTime = Math.round(new Date().getTime() / 1000) + (2*24*60*60);
+        
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 1, 3, expiryTime, {value: 1});
+        await listNFT.wait();
+        console.log(`Listed NFT ${tokenId}`);
+        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress, tokenId, 10, 1, 3, expiryTime)
+
+        const bidNFT = await marketplace.connect(renter).bidNFT(nftAddress, tokenId, 2, {value: 25});
+        await bidNFT.wait()
+        expect(bidNFT).to.emit(marketplace, "TokenBid").withArgs(nftAddress, tokenId, 2, 25);
+
+        const numBids = await marketplace.connect(owner).getAllBids(nftAddress, tokenId);
+        expect(numBids.length).to.equal(1);
+        expect(numBids[0].rentee).to.equal(renter.address);
+        expect(numBids[0].totalBid).to.equal(25);
+
+        const accept = await marketplace.connect(owner).acceptBid(nftAddress, tokenId, renter.address);
+        await accept.wait();
+        expect(accept).to.emit(marketplace, "TokenRented").withArgs(nftAddress, tokenId, renter.address, 2, 10, renter.address);
+
+        let user = await rentableNFT.userOf(tokenId);
+        expect(user).to.equal(renter.address);
+        console.log("Renter is correct")
+    })
+
     it("Delist NFT", async() => {
         const marketplace = await setUpMarketplace();
         const rentableNFT = await setupContract();

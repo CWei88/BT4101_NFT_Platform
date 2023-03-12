@@ -48,6 +48,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         address payable rentee;
         uint256 pricePerDay;
         uint256 rentalDays;
+        uint256 totalBid;
     }
 
     //Struct to store items currently rented out.
@@ -63,11 +64,14 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     }
 
     event TokenListed(address indexed _nftAddress, uint256 indexed tokenId, uint256 pricePerDay, uint256 minRentalDays, uint256 maxRentalDays, uint256 listingExpiry);
+    event TokenBid(address indexed _nftAddress, uint256 indexed tokenId, uint256 rentalDays, uint256 bidAmt);
     event TokenRented(address indexed _nftAddress, uint256 indexed tokenId, address rentee, uint256 pricePerDay, uint256 rentalDays, address _sender);
     event TokenDelisted(address _nftAddress, uint256 tokenId, bool availableToRent);
     event TokenClaimed(address indexed _nftAddress, uint256 indexed tokenId, address _sender);
     event FeeUpdated(uint256 _from, uint256 _to, address _sender);
     event feeCollectorUpdated(address _from, address _to, address _sender);
+    event BidReceived(address rentee, uint256 bidAmt);
+    event BidReturned(address bidder, uint256 bidAmt);
 
     modifier onlyOwner(address nftAddress, uint256 tokenId) {
         address owner = IERC721(nftAddress).ownerOf(tokenId);
@@ -106,6 +110,10 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         allStop = false;
     }
 
+    receive() external payable {
+        emit BidReceived(msg.sender, msg.value);
+    }
+
     //Listing function to list NFTs.
     function listNFT(address _nftAddress, uint256 tokenId, uint256 pricePerDay, uint256 minRentalDays, uint256 maxRentalDays, uint256 listingExpiry) 
     public payable nonReentrant onlyOwner(_nftAddress, tokenId) transactionResumed {
@@ -133,19 +141,22 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         emit TokenListed(_nftAddress, tokenId, pricePerDay, minRentalDays, maxRentalDays, listingExpiry);
     }
 
-    /*function bidNFT(address _nftAddress, uint256 tokenId, uint256 pricePerDay, uint256 rentalDays) public payable nonReentrant {
+    function bidNFT(address _nftAddress, uint256 tokenId, uint256 rentalDays) public payable nonReentrant transactionResumed{
         Listing storage token = rentalListings[_nftAddress][tokenId];
         require(msg.sender != token.owner, "Owner cannot bid for their own NFTs");
         require(rentalDays >= token.minRentalDays, "Rental Days cannot be shorter than minimum");
         require(rentalDays <= token.maxRentalDays, "Rental Days cannot be longer than maximum");
         require(token.listingExpiry > block.timestamp, "Listing has expired");
-        uint256 totalBid = pricePerDay * rentalDays
-        require(msg.sender.balance >= totalBid, "Insufficient ether to complete transaction!");
+        uint256 totalBid = token.pricePerDay * rentalDays;
+        require(msg.value >= totalBid, "Bid lower than minimum rental price!");
+        require(token.availableToRent == true, "Token is not available for Rental");
+        require(currentlyRented[_nftAddress][tokenId].rentalEnd == 0, "Token has been rented out");
 
-        Bid newBid = Bid(_nftAddress, tokenId, msg.sender, pricePerDay, rentalDays);
+        Bid memory newBid = Bid(_nftAddress, tokenId, payable(msg.sender), token.pricePerDay, rentalDays, msg.value);
         rentalBids[_nftAddress][tokenId][msg.sender] = newBid;
         Bid[] memory bidStore = bidStorage[_nftAddress][tokenId];
         bool isChanged = false;
+
         //Checks if the rentee has previously bidded, and updates the bids instead.
         for (uint256 i=0; i < bidStore.length; i++) {
             Bid memory cBid = bidStore[i];
@@ -154,28 +165,54 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
                 isChanged = true;
             }
         }
+
         if (!isChanged) { //if there was no such bid from the rentee before.
             bidStorage[_nftAddress][tokenId].push(newBid);
         }
 
-        emit TokenBid(_nftAddress, tokenId, msg.sender, pricePerDay, rentalDays);
+        emit TokenBid(_nftAddress, tokenId, rentalDays, msg.value);
     }
 
-    function acceptBid(address _nftAddress, uint256 tokenId, address rentee) public payable nonReentrant onlyOwner(_nftAddress, tokenId) {
+    function acceptBid(address _nftAddress, uint256 tokenId, address rentee) public payable nonReentrant  transactionResumed {
         Listing storage token = rentalListings[_nftAddress][tokenId];
         Bid memory acceptedBid = rentalBids[_nftAddress][tokenId][rentee];
+        require(token.owner == msg.sender, "Caller is not token owner");
 
-        uint256 priceDaily = acceptedBid.pricePerDay;
         uint256 rentalDuration = acceptedBid.rentalDays;
+        uint256 acceptedAmt = acceptedBid.totalBid;
         address payable owner = token.owner;
-        address payable rentee = acceptedBid.rentee;
 
-        uint256 totalPricePaid = priceDaily * rentalDuration;
-        require(rentee.balance >= totalPricePaid, "Insufficient balance to pay for rental");
+        _bidRental(_nftAddress, tokenId, owner, rentee, rentalDuration, acceptedAmt);
 
+        emit TokenRented(_nftAddress, tokenId, rentee, rentalDuration, token.pricePerDay, msg.sender);
+    }
 
-    }*/
+    function _bidRental(address _nftAddress, uint256 tokenId, address owner, address rentee, uint256 rentalDays, uint256 bidAmt) private {
+        require(rentee.balance >= bidAmt, "Insufficient balance to pay for rental");
+        Bid[] memory bidStore = bidStorage[_nftAddress][tokenId];
+        
+        payable(owner).transfer(bidAmt);
+        uint256 rentalExpiryTime = block.timestamp + (rentalDays * 24 * 60 * 60);
+        ERC4907(_nftAddress).setUser(tokenId, rentee, uint64(rentalExpiryTime));
 
+        Rental memory rentedOut = Rental(payable(owner), payable(msg.sender), rentalExpiryTime);
+        currentlyRented[_nftAddress][tokenId] = rentedOut;
+        uint256 index = tokensRented.length;
+        rentalIndex[_nftAddress][tokenId] = index;
+        tokensRented.push(rentedOut);
+
+        //returns bids for bids that are not accepted.
+        for (uint256 i=0; i < bidStore.length; i++) {
+            Bid memory bidded = bidStore[i];
+            if (bidded.rentee != rentee && bidded.totalBid != bidAmt) {
+                returnBid(bidded.rentee, bidded.totalBid);
+            }
+        }
+
+        delete bidStorage[_nftAddress][tokenId];
+    }
+
+    //Immediate rental of NFT without a bidding process.
     function rentNFT(address _nftAddress, uint256 tokenId, uint64 rentalDays) public payable nonReentrant transactionResumed {
         Listing storage token = rentalListings[_nftAddress][tokenId];
         require(rentalDays >= token.minRentalDays, "Cannot rent for less than minimum");
@@ -185,6 +222,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         require(token.listingExpiry > block.timestamp, "Listing has expired");
         require(msg.value >= totalRentalPrice, "Insufficient ether to pay for rental");
         require(token.availableToRent == true, "Token is not available for Rental");
+        require(currentlyRented[_nftAddress][tokenId].rentalEnd == 0, "Token has been rented out");
 
         payable(token.owner).transfer(msg.value);
         ERC4907(token.contractAddress).setUser(tokenId, msg.sender, uint64(rentalExpiryTime));
@@ -198,6 +236,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         emit TokenRented(_nftAddress, tokenId, msg.sender, rentalDays, token.pricePerDay, msg.sender);
     }
 
+    //function to delistNFT
     function delistNFT(address _nftAddress, uint256 tokenId) public {
         Rental storage rentedToken = currentlyRented[_nftAddress][tokenId];
         Listing storage token = rentalListings[_nftAddress][tokenId];
@@ -222,6 +261,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
 
     }
 
+    //function to claim back an NFT back to owner address.
     function claimNFT(address _nftAddress, uint256 tokenId) public {
         Listing storage token = rentalListings[_nftAddress][tokenId];
         require(token.owner == msg.sender, "Only owner can claim back NFT");
@@ -249,9 +289,12 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         emit FeeUpdated(oldFee, listingFee, msg.sender);
     }
 
-    /*function getAllBids(address _nftAddress, uint256 tokenId) public view onlyOwner(_nftAddress, tokenId) returns(Bid[] memory){
+    //Getter function for all bids
+    function getAllBids(address _nftAddress, uint256 tokenId) public view  returns(Bid[] memory){
+        Listing memory token = rentalListings[_nftAddress][tokenId];
+        require(token.owner == msg.sender, "Caller is not token owner");
         return bidStorage[_nftAddress][tokenId];
-    }*/
+    }
 
     //Getter function for marketplace
     function getAllListings() public view returns (Listing[] memory) {
@@ -304,5 +347,12 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         }
 
         return currRented;
+    }
+
+    //private function to return bids that are not accepted
+    function returnBid(address bidder, uint256 valueToReturn) private {
+        address payable returner = payable(bidder);
+        returner.transfer(valueToReturn);
+        emit BidReturned(bidder, valueToReturn);
     }
 }
