@@ -116,7 +116,7 @@ describe("Marketplace Errors", function() {
 
         await network.provider.send('evm_increaseTime', [86410])
         await network.provider.send('evm_mine')
-        await expect(marketplace.connect(renter).rentNFT(nftAddress, tokenId, 2, {value: 20})).to.be.revertedWith("Listing has expired")
+        await expect(marketplace.connect(renter).rentNFT(nftAddress2, tokenId2, 2, {value: 20})).to.be.revertedWith("Listing has expired")
         console.log("Listing Expiry Tested")
 
     })
