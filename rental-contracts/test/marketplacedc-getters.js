@@ -41,6 +41,9 @@ describe("Test Marketplace Getters", function() {
 
         const tx3 = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
         const txRes3 = await tx3.wait()
+
+        const tx4 = await rentableNFT.connect(renter).mint(renter.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes4 = await tx4.wait()
     
         const tokenId = txRes.events[0].args.tokenId
         console.log(tokenId)
@@ -51,10 +54,14 @@ describe("Test Marketplace Getters", function() {
 
         const tokenId3 = txRes3.events[0].args.tokenId
         let nftAddress3 = txRes3.events[0].address.toString();
+
+        const tokenId4 = txRes4.events[0].args.tokenId
+        let nftAddress4 = txRes4.events[0].address.toString();
     
         await rentableNFT.approve(marketplace.address, tokenId);
         await rentableNFT.approve(marketplace.address, tokenId2);
         await rentableNFT.approve(marketplace.address, tokenId3);
+        await rentableNFT.connect(renter).approve(marketplace.address, tokenId4);
 
         let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60)
         
@@ -67,8 +74,11 @@ describe("Test Marketplace Getters", function() {
         const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 1, expiryTime, {value: 1});
         await listNFT3.wait();
 
+        const listNFT4 = await marketplace.connect(renter).listNFT(nftAddress4, tokenId4, 10, 0, 1, expiryTime, {value: 1});
+        await listNFT4.wait();
+
         let lister = await marketplace.getAllListings();
-        expect(lister.length).to.equal(3);
+        expect(lister.length).to.equal(4);
 
         let firstListing = lister[0];
         expect(firstListing.contractAddress).to.equal(nftAddress);
@@ -89,17 +99,25 @@ describe("Test Marketplace Getters", function() {
         await expect(delist2).to.emit(marketplace, "TokenDelisted").withArgs(nftAddress2, tokenId2, false);
 
         let lister2 = await marketplace.getAvailableListings();
-        expect(lister2.length).to.equal(2);
+        expect(lister2.length).to.equal(3);
 
         const claim = await marketplace.connect(owner).claimNFT(nftAddress2, tokenId2);
         await claim.wait();
 
         let lister3 = await marketplace.getAllListings();
-        expect(lister3.length).to.equal(3);
+        expect(lister3.length).to.equal(4);
         
         let deletedNFT = lister3[1];
         expect(deletedNFT.contractAddress).to.equal(ethers.constants.AddressZero);
         expect(deletedNFT.tokenId).to.equal(0);
+
+        let ownedListingOwner = await marketplace.connect(owner).getOwnedListings();
+        expect(ownedListingOwner.length).to.equal(2);
+        expect(ownedListingOwner[0].contractAddress).to.equal(nftAddress);
+
+        let ownedListingUser = await marketplace.connect(renter).getOwnedListings();
+        expect(ownedListingUser.length).to.equal(1);
+        expect(ownedListingUser[0].contractAddress).to.equal(nftAddress4);
     })
 
     it("Get Listing Fee", async() => {

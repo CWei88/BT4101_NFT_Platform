@@ -328,8 +328,26 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         return listingFee;
     }
 
-    function getOwnedTokens() public view returns(Listing[] memory) {
-        
+    function getOwnedListings() public view returns(Listing[] memory) {
+        uint256 numOwned = 0;
+        for (uint256 i=0; i<listedTokens.length; i++) {
+            Listing memory listed = listedTokens[i];
+            if (listed.owner == msg.sender) {
+                numOwned += 1;
+            }
+        }
+
+        Listing[] memory ownedListings = new Listing[](numOwned);
+        uint j=0;
+        for (uint256 i=0; i < listedTokens.length; i++) { 
+            Listing memory listed = listedTokens[i];
+            if (listed.owner == msg.sender) {
+                ownedListings[j] = listed;
+                j += 1;
+            }
+        }
+
+        return ownedListings;
     }
 
     function getCurrentlyRented() public view returns (Rental[] memory){
