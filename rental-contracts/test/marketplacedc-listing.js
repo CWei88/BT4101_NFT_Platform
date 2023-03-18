@@ -5,7 +5,7 @@ const setUpMarketplace = async() => {
     const acc = await ethers.getSigners();
     const mktplaceOwner = acc[2];
     const mktplace = await ethers.getContractFactory("MarketplaceDC");
-    const mplace = await mktplace.deploy(mktplaceOwner.address, mktplaceOwner.address, 1);
+    const mplace = await mktplace.deploy(mktplaceOwner.address, mktplaceOwner.address, 1, 10);
     await mplace.deployed();
     return mplace;
 }

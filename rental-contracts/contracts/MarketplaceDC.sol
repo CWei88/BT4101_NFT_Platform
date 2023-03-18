@@ -18,12 +18,12 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     //Fee charged by platform to list NFT.
     uint256 listingFee;
     bytes4 private constant IID_ERC4907 = type(IERC4907).interfaceId;
+    uint256 commsPercentage = 0; //Percentage as comms out of 100.
     bool allStop = false; //Failsafe 
 
     mapping(address => mapping(uint256 => Listing)) private rentalListings; //used to store rental listings for retrieval.
     mapping(address => mapping(uint256 => mapping(address => Bid))) private rentalBids; //used to store bids for rentals.
     mapping(address => mapping(uint256 => Rental)) private currentlyRented; //store currently rented NFTs.
-
     mapping(address => mapping(uint256 => Bid[])) private bidStorage; // Bid storage to get number of bid for each nft.
     //Mapping to get listings and index of listed items.
     mapping(address => mapping(uint256 => uint256)) private listingIndex;
@@ -73,6 +73,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     event feeCollectorUpdated(address _from, address _to, address _sender);
     event BidReceived(address rentee, uint256 bidAmt);
     event BidReturned(address bidder, uint256 bidAmt);
+    event ComissionWithdrawn(address feeCollector, uint256 feeWithdrawn);
 
     modifier onlyOwner(address nftAddress, uint256 tokenId) {
         address owner = IERC721(nftAddress).ownerOf(tokenId);
@@ -95,10 +96,11 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         _;
     }
 
-    constructor(address _owner, address _feeCollector, uint256 _fee) {
+    constructor(address _owner, address _feeCollector, uint256 _fee, uint256 _commsPercentage) {
         marketOwner = _owner;
         feeCollector = payable(_feeCollector);
         listingFee = _fee;
+        commsPercentage = _commsPercentage;
     }
 
     //Function to stop deposits when there is malicious activity;
@@ -130,14 +132,14 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
 
         ERC4907(_nftAddress).safeTransferFrom(msg.sender, address(this), tokenId);
 
+        payable(address(this)).transfer(msg.value);
+
         Listing memory lister = Listing(_nftAddress, tokenId, payable(msg.sender), pricePerDay, minRentalDays, maxRentalDays, listingExpiry, true);
         rentalListings[_nftAddress][tokenId] = lister;
 
         uint256 index = listedTokens.length;
         listingIndex[_nftAddress][tokenId] = index;
         listedTokens.push(lister);
-
-        feeCollector.transfer(msg.value);
 
         emit TokenListed(_nftAddress, tokenId, pricePerDay, minRentalDays, maxRentalDays, listingExpiry);
     }
@@ -191,8 +193,12 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     function _bidRental(address _nftAddress, uint256 tokenId, address owner, address rentee, uint256 rentalDays, uint256 bidAmt) private {
         require(rentee.balance >= bidAmt, "Insufficient balance to pay for rental");
         Bid[] memory bidStore = bidStorage[_nftAddress][tokenId];
+        uint256 commsRecv = (bidAmt * commsPercentage)/100;
+        uint256 ownerTrf = bidAmt - commsRecv;
         
-        payable(owner).transfer(bidAmt);
+        payable(owner).transfer(ownerTrf);
+        payable(address(this)).transfer(commsRecv);
+
         uint256 rentalExpiryTime = block.timestamp + (rentalDays * 24 * 60 * 60);
         ERC4907(_nftAddress).setUser(tokenId, rentee, uint64(rentalExpiryTime));
 
@@ -225,7 +231,12 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         require(token.availableToRent == true, "Token is not available for Rental");
         require(currentlyRented[_nftAddress][tokenId].rentalEnd == 0, "Token has been rented out");
 
-        payable(token.owner).transfer(msg.value);
+        uint256 commsRecv = (msg.value * commsPercentage)/100;
+        uint256 OwnrTrf = msg.value - commsRecv;
+
+        payable(token.owner).transfer(OwnrTrf);
+        payable(address(this)).transfer(commsRecv);
+
         ERC4907(token.contractAddress).setUser(tokenId, msg.sender, uint64(rentalExpiryTime));
 
         Rental memory rentedOut = Rental(token.owner, payable(msg.sender), rentalExpiryTime);
@@ -371,6 +382,20 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
 
         return currRented;
     }
+
+    function withdrawComission() external payable {
+        require(msg.sender == feeCollector, "Only feeCollector can withdraw");
+        uint256 currBalance = address(this).balance;
+        feeCollector.transfer(currBalance);
+
+        emit ComissionWithdrawn(msg.sender, currBalance);
+    }
+    
+    function getComissionBalance() public view returns(uint256) {
+        require(msg.sender == feeCollector || msg.sender == marketOwner, "No permission to view balance");
+        return address(this).balance;
+    }
+
 
     //private function to return bids that are not accepted
     function returnBid(address bidder, uint256 valueToReturn) private {

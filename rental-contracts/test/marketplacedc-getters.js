@@ -5,7 +5,7 @@ const setUpMarketplace = async() => {
     const acc = await ethers.getSigners();
     const mktplaceOwner = acc[2];
     const mktplace = await ethers.getContractFactory("MarketplaceDC");
-    const mplace = await mktplace.deploy(mktplaceOwner.address, mktplaceOwner.address, 1);
+    const mplace = await mktplace.deploy(mktplaceOwner.address, mktplaceOwner.address, 1, 10);
     await mplace.deployed();
     return mplace;
 }
@@ -88,7 +88,7 @@ describe("Test Marketplace Getters", function() {
         let secondListing = lister[1]
         expect(secondListing.contractAddress).to.equal(nftAddress2);
         expect(secondListing.tokenId).to.equal(tokenId2);
-        console.log("SecondListing correct!")
+        console.log("Second Listing correct!")
 
         let thirdListing = lister[2]
         expect(thirdListing.contractAddress).to.equal(nftAddress3);
@@ -196,5 +196,68 @@ describe("Test Marketplace Getters", function() {
         let r = newRentals[0];
         expect(r.rentee).to.equal(renter.address);
 
+    })
+
+    it("Get comissionBalance", async() => {
+        const marketplace = await setUpMarketplace();
+        const rentableNFT = await setupContract();
+        const [owner, renter] = await setupAccounts();
+        const accounts = await ethers.getSigners();
+        let mOwner = accounts[2];
+    
+        //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
+        const tx = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes = await tx.wait();
+
+        const tx2 = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes2 = await tx2.wait()
+
+        const tx3 = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes3 = await tx3.wait()
+
+        const tx4 = await rentableNFT.connect(renter).mint(renter.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes4 = await tx4.wait()
+    
+        const tokenId = txRes.events[0].args.tokenId
+        console.log(tokenId)
+        let nftAddress = txRes.events[0].address.toString();
+
+        const tokenId2 = txRes2.events[0].args.tokenId
+        let nftAddress2 = txRes2.events[0].address.toString();
+
+        const tokenId3 = txRes3.events[0].args.tokenId
+        let nftAddress3 = txRes3.events[0].address.toString();
+
+        const tokenId4 = txRes4.events[0].args.tokenId
+        let nftAddress4 = txRes4.events[0].address.toString();
+    
+        await rentableNFT.approve(marketplace.address, tokenId);
+        await rentableNFT.approve(marketplace.address, tokenId2);
+        await rentableNFT.approve(marketplace.address, tokenId3);
+        await rentableNFT.connect(renter).approve(marketplace.address, tokenId4);
+
+        let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60)
+        
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1});
+        await listNFT.wait();
+
+        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, {value: 1});
+        await listNFT2.wait();
+
+        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 1, expiryTime, {value: 1});
+        await listNFT3.wait();
+
+        const listNFT4 = await marketplace.connect(renter).listNFT(nftAddress4, tokenId4, 10, 0, 1, expiryTime, {value: 1});
+        await listNFT4.wait();
+
+        let currBalance = await marketplace.connect(mOwner).getComissionBalance();
+        expect(currBalance.toNumber()).to.equal(4);
+
+        let withdraw = await marketplace.connect(mOwner).withdrawComission();
+        await withdraw.wait();
+        expect(withdraw).to.emit(marketplace, "ComissionWithdrawn").withArgs(mOwner.address, 4);
+
+        let newBalance = await marketplace.connect(mOwner).getComissionBalance();
+        expect(newBalance.toNumber()).to.equal(0)
     })
 })

@@ -5,7 +5,7 @@ const setUpMarketplace = async() => {
     const acc = await ethers.getSigners();
     const mktplaceOwner = acc[2];
     const mktplace = await ethers.getContractFactory("MarketplaceDC");
-    const mplace = await mktplace.deploy(mktplaceOwner.address, mktplaceOwner.address, 1);
+    const mplace = await mktplace.deploy(mktplaceOwner.address, mktplaceOwner.address, 1, 10);
     await mplace.deployed();
     return mplace;
 }
@@ -322,5 +322,31 @@ describe("Marketplace Errors", function() {
         let rental = await marketplace.connect(renter).rentNFT(nftAddress, tokenId, 1, {value: 10})
         await rental.wait();
         await expect(rental).to.emit(marketplace, "TokenRented").withArgs(nftAddress, tokenId, renter.address, 1, 10, renter.address);
+    })
+
+    it("Test Withdraw Permissions", async() => {
+        const marketplace = await setUpMarketplace();
+        const rentableNFT = await setupContract();
+        const [owner, renter] = await setupAccounts();
+
+        //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
+        const tx = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes = await tx.wait();
+            
+        const tokenId = txRes.events[0].args.tokenId
+        console.log(tokenId)
+        let nftAddress = txRes.events[0].address.toString();
+            
+        await rentableNFT.approve(marketplace.address, tokenId);
+        let expiryTime = Math.round(new Date().getTime() / 1000) + (3*24*60*60)
+
+        let listTransaction = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1})
+        await listTransaction.wait();
+
+        await expect(marketplace.connect(owner).getComissionBalance()).to.be.revertedWith("No permission to view balance")
+        await expect(marketplace.connect(owner).withdrawComission()).to.be.revertedWith("Only feeCollector can withdraw")
+
+        await expect(marketplace.connect(renter).getComissionBalance()).to.be.revertedWith("No permission to view balance")
+        await expect(marketplace.connect(renter).withdrawComission()).to.be.revertedWith("Only feeCollector can withdraw")
     })
 })
