@@ -662,8 +662,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\ERC4907\\ERC4907Wrapper.sol": {
-      "lastModificationDate": 1674914798510,
-      "contentHash": "ac6cb3af2946cbcb581df0486cfb9aa1",
+      "lastModificationDate": 1679200262933,
+      "contentHash": "d130cc9e28c7e364fc6c842a823c2392",
       "sourceName": "contracts/ERC4907/ERC4907Wrapper.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -691,8 +691,10 @@
       "imports": [
         "@openzeppelin/contracts/token/ERC721/ERC721.sol",
         "./ERC4907.sol",
+        "@openzeppelin/contracts/utils/Counters.sol",
         "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol",
-        "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol"
+        "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol",
+        "@openzeppelin/contracts/security/ReentrancyGuard.sol"
       ],
       "versionPragmas": [
         "^0.8.17"
