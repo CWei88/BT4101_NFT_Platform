@@ -32,8 +32,8 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver, ReentrancyGuard {
         _;
     }
 
-    constructor(string memory _name, string memory _symbol) ERC4907(_name, _symbol) {
-        wrapperOwner = msg.sender;
+    constructor(address wrapOwner, string memory _name, string memory _symbol) ERC4907(_name, _symbol) {
+        wrapperOwner = wrapOwner;
         wrappingAllowed = true;
     }
 
@@ -61,7 +61,7 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver, ReentrancyGuard {
         require(token.originalOwner == msg.sender, "Only original owner can unwrap");
 
         _burn(tokenId);
-        ERC721(token.nftAddress).safeTransferFrom(address(this), msg.sender, tokenId);
+        ERC721(token.nftAddress).safeTransferFrom(address(this), msg.sender, token.tokenId);
 
         emit TokenUnWrapped(token.nftAddress, tokenId);
     }
@@ -76,6 +76,10 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver, ReentrancyGuard {
 
     function getAddress() public view returns (address) {
         return address(this);
+    }
+
+    function getOwner(address _nftAddress, uint256 _tokenId) public view returns (address){
+        return IERC721(_nftAddress).ownerOf(_tokenId);
     }
 
     /// @dev See {IERC165-supportsInterface}.

@@ -662,8 +662,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\ERC4907\\ERC4907Wrapper.sol": {
-      "lastModificationDate": 1679200262933,
-      "contentHash": "d130cc9e28c7e364fc6c842a823c2392",
+      "lastModificationDate": 1679412811622,
+      "contentHash": "e00f03de57b08a2eecf9d3913a30aef7",
       "sourceName": "contracts/ERC4907/ERC4907Wrapper.sol",
       "solcConfig": {
         "version": "0.8.17",
