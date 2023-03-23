@@ -73,15 +73,18 @@ const Listings=()=>{
   };
 
   async function wrap(id) {
-    const approval = await token_dnft.approve(REACT_APP_WRAPPER_ADDRESS,id);
+    //const approval = await token_dnft.approve(REACT_APP_WRAPPER_ADDRESS,id);
     console.log('Wrapper Contract Approved')
+    setListMessage('Loading: Wrapper Contract Approved...')
 
-    token_dnft.ownerOf(id).then(res => console.log(res));
-    const wrap = await Wrapper.wrapToken(id, {gasPrice: 100000000000});
+    await token_dnft.ownerOf(id).then(res => console.log(res));
+    const wrap = await Wrapper.wrapToken(REACT_APP_DNFT_ADDRESS,id,{'gasPrice':10000000000,'gasLimit':250000});
     const wTx = await wrap.wait();
+    await token_dnft.ownerOf(id).then(res => console.log(res));
     //console.log(wTx.events)
     let newAddress = wTx.events[2].address.toString();
     console.log(`NFT of tokenId ${id} wrapped at address ${newAddress}`)
+    setListMessage(`LoadingL NFT of tokenId ${id} wrapped at address ${newAddress}...`)
     //return newAddress
    }
 
@@ -96,6 +99,8 @@ const Listings=()=>{
    }
 
   async function list() {
+    const listingDuration = 1
+    const currWrapperId  = 2
     setListMessage('Loading: Wrapping NFT...')
 
     const tokenId = document.getElementById('tokenid').value
@@ -103,38 +108,40 @@ const Listings=()=>{
     const price = document.getElementById('price').value
     const minDays = document.getElementById('min-days').value
     const maxDays = document.getElementById('max-days').value
-    await wrap(tokenId);
-    
+    const tokenAddress = document.getElementById('nft-address').value
 
-    setListMessage('Loading: NFT Wrapped to Wrapper Type...')
+    await wrap(tokenId);
 
     console.log('User authorising market')
     setListMessage('Loading: Authorizing the market...')
 
     try {
-      let approval = await Wrapper.approve(REACT_APP_MARKET_ADDRESS, tokenId,
-      {gasPrice: 100000000000})
+      let approval = await Wrapper.approve(REACT_APP_MARKET_ADDRESS, currWrapperId,
+      {gasPrice: 50000000000})
       await approval.wait()
     } catch (error) {
       alert(error)
+      return;
     }
 
     console.log('Market Approved')
 
     console.log("Listing NFT")
     setListMessage('Loading: Listing NFT...')
-    let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60)
+    let expiryTime = Math.round(new Date().getTime() / 1000) + (listingDuration*24*60*60)
 
-    try {
-      await Wrapper.ownerOf(1).then(res => console.log(res))
-      let listTx = await Market.listNFT(REACT_APP_WRAPPER_ADDRESS, tokenId, price,minDays,maxDays, expiryTime,{value:1});
-      
+    try{
+      await Wrapper.ownerOf(currWrapperId).then(res => console.log(res))
+      let listTx = await Market.listNFT(REACT_APP_WRAPPER_ADDRESS, currWrapperId, price,minDays,maxDays, expiryTime,{value:1});
       await listTx.wait()
-    } catch (error) {
+      console.log("NFT Listed")
+
+      //window.setTimeout(delist(REACT_APP_WRAPPER_ADDRESS,1),24*60*60*60*1000)
+      setListMessage(`Congrats, NFT has been listed successfully! Your listing will expire at ${new Date(expiryTime*1000)}`)
+    } catch(error) {
       alert(error)
+      return;
     }
-    console.log("NFT Listed")
-    setListMessage('Congrats, NFT has been listed successfully!')
   }
 
   async function viewOwnedListings() {
@@ -151,7 +158,7 @@ const Listings=()=>{
       var response = ''
       var price = parseInt(listings[i]['pricePerDay'])
       console.log(price)
-      await token_dnft.tokenURI(id).then(res => {
+      await token_dnft.tokenURI(8).then(res => {
           url = res
       })
       console.log(url)
@@ -175,7 +182,7 @@ const Listings=()=>{
   async function getBids(id){
     try{
       var bids = []
-      await Market.getAllBids("0x514393f3D95262Ac952433484dE9aCd031Ea0b78",id).then(res=>{
+      await Market.getAllBids(REACT_APP_WRAPPER_ADDRESS,id).then(res=>{
         bids=res;
       })
       var results = []
@@ -199,18 +206,20 @@ const Listings=()=>{
   async function delist(id) {
     handleCloseDelist();
     console.log("Delisting NFT")
-    let delistTx = await Market.delistNFT("0x514393f3D95262Ac952433484dE9aCd031Ea0b78", 4)
+    const currWrapperId = 2
+    await token_dnft.ownerOf(id).then(res=>console.log(`Owner: ${res}`))
+    let delistTx = await Market.delistNFT(REACT_APP_WRAPPER_ADDRESS, currWrapperId)
     await delistTx.wait()
 
-    await token_dnft.ownerOf(id).then(res=>console.log(res))
+    await token_dnft.ownerOf(id).then(res=>console.log(`Owner: ${res}`))
     try {
-      unwrap(id)
+      await unwrap(currWrapperId)
+      console.log(`NFT ${id} delisted`)
     } catch (error) {
       alert(error)
     }
-
-    console.log(`NFT ${id} delisted`)
   }
+  
   const gridStyles = {
     backgroundColor: "black",
     marginLeft: "auto",
@@ -305,7 +314,7 @@ const Listings=()=>{
                   </DialogContent>
                   <DialogActions>
                     <Button onClick={handleCloseDelist}>Disagree</Button>
-                    <Button onClick={handleCloseDelist} autoFocus>
+                    <Button onClick={()=>delist(item[1])} autoFocus>
                       Agree
                     </Button>
                   </DialogActions>
@@ -347,6 +356,15 @@ const Listings=()=>{
                   List your token for rental and earn rental fees today!
                 </Typography>
                 <Grid container spacing={0}>
+                <Grid item sm={3}>
+                    <TextField
+                      required
+                      id="nft-address"
+                      fullWidth
+                      label='NFT Address'
+                      variant="outlined"
+                    />
+                  </Grid>
                   <Grid item sm={3}>
                     <TextField
                       required
