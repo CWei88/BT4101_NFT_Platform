@@ -74,7 +74,7 @@ describe("Wrapper Test", function() {
         console.log(wtokenId)
         let wnftAddress = wrapTxRes.events[2].address.toString();
 
-        expect(wtokenId).to.equal(0);
+        expect(wtokenId).to.equal(1);
         let wrappedOwner = await wrapper.getOwner(wnftAddress, wtokenId);
         let origOwner = await normNFT.ownerOf(tokenId);
         expect(wrappedOwner).to.equal(owner.address);
@@ -90,7 +90,7 @@ describe("Wrapper Test", function() {
         console.log(wtokenId2)
         let wnftAddress2 = wrapTxRes2.events[2].address.toString();
 
-        expect(wtokenId2).to.equal(1);
+        expect(wtokenId2).to.equal(2);
         let wrappedOwner2 = await wrapper.getOwner(wnftAddress2, wtokenId2);
         let origOwner2 = await normNFT.ownerOf(tokenId2);
         expect(wrappedOwner2).to.equal(renter.address)
@@ -106,7 +106,7 @@ describe("Wrapper Test", function() {
         console.log(wtokenId3)
         let wnftAddress3 = wrapTxRes3.events[2].address.toString();
 
-        expect(wtokenId3).to.equal(2);
+        expect(wtokenId3).to.equal(3);
         let wrappedOwner3 = await wrapper.getOwner(wnftAddress3, wtokenId3);
         let origOwner3= await normNFT.ownerOf(tokenId3);
         expect(wrappedOwner3).to.equal(owner.address)
@@ -184,6 +184,14 @@ describe("Wrapper Test", function() {
 
         await expect(wrapper.getOwner(wnftAddress, wtokenId)).to.be.revertedWith("ERC721: invalid token ID")
         console.log("NFT burned")
+
+        await expect(wrapper.unwrapToken(0)).to.be.revertedWith("Invalid tokenId provided")
+        await expect(wrapper.unwrapToken(4)).to.be.revertedWith("Invalid tokenId provided")
+
+        console.log("Unwrap error tested.");
+
+        let wrappedTokenId = await wrapper.getWrappedTokenId(nftAddress2, tokenId2);
+        expect(wrappedTokenId).to.equal(2);
     })
 
     it("List ERC721 wrapped Token", async() => {

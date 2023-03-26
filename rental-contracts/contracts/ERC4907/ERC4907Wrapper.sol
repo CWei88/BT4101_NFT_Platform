@@ -24,6 +24,7 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver, ReentrancyGuard {
     }
 
     mapping(uint256 => OriginalToken) private wrappedTokens;
+    mapping(address => mapping(uint256 => uint256)) private wrappedTokenIds;
 
     bytes4 public constant InterfaceIERC4907 = type(IERC4907).interfaceId;
 
@@ -44,10 +45,14 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver, ReentrancyGuard {
     function wrapToken(address _nftAddress, uint256 tokenId) public virtual wrappingResumed nonReentrant {
         address owner = IERC721(_nftAddress).ownerOf(tokenId);
         require(owner == msg.sender, "Only owner can wrap token");
+        if (_tokenIds.current() == 0) {
+            _tokenIds.increment();
+        }
         uint256 currTokenId = _tokenIds.current();
 
         ERC721(_nftAddress).safeTransferFrom(msg.sender, address(this), tokenId);
         _safeMint(msg.sender, currTokenId);
+        wrappedTokenIds[_nftAddress][tokenId] = currTokenId;
         wrappedTokens[currTokenId] = OriginalToken(_nftAddress, tokenId, msg.sender);
         _tokenIds.increment();
 
@@ -57,6 +62,7 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver, ReentrancyGuard {
     function unwrapToken(uint256 tokenId) public virtual nonReentrant{
         OriginalToken storage token = wrappedTokens[tokenId];
         address currAddress = token.nftAddress;
+        require(tokenId > 0 && tokenId < _tokenIds.current(), "Invalid tokenId provided");
         require(IERC721(currAddress).ownerOf(token.tokenId) == address(this), "Invalid wrapped tokenId provided.");
         require(token.originalOwner == msg.sender, "Only original owner can unwrap");
 
@@ -76,6 +82,10 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver, ReentrancyGuard {
 
     function getAddress() public view returns (address) {
         return address(this);
+    }
+
+    function getWrappedTokenId(address originalNftAddress, uint256 originalTokenId) public view returns(uint256) {
+        return wrappedTokenIds[originalNftAddress][originalTokenId];
     }
 
     function getOwner(address _nftAddress, uint256 _tokenId) public view returns (address){
