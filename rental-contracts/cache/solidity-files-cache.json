@@ -1046,8 +1046,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\MarketplaceDC.sol": {
-      "lastModificationDate": 1679131471891,
-      "contentHash": "d891c6ca13cc2e202b1fc2582ca9e199",
+      "lastModificationDate": 1679902847091,
+      "contentHash": "034ab33f0068da2e1d48609728ac0f96",
       "sourceName": "contracts/MarketplaceDC.sol",
       "solcConfig": {
         "version": "0.8.17",

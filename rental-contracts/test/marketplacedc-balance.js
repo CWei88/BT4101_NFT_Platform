@@ -94,6 +94,9 @@ describe("Ether balance Test for accounts", function() {
         const bidRecp = await bidNFT.wait()
         expect(bidNFT).to.emit(marketplace, "TokenBid").withArgs(nftAddress, tokenId, 2, 25);
 
+        let midBidBalance = await ethers.provider.getBalance(renter.address);
+        midBidBalance = midBidBalance.toString();
+
         let accinitBalance = await ethers.provider.getBalance(acc.address);
         accinitBalance = accinitBalance.toString();
 
@@ -128,6 +131,7 @@ describe("Ether balance Test for accounts", function() {
         expect(BigInt(finalBidderBalance)).to.equal(BigInt(bidderBalance) - BigInt(bidgasused) - 25n);
         expect(BigInt(accFinalBalance)).to.equal(BigInt(accinitBalance) - BigInt(accbidgas));
         expect(BigInt(finalmOwnerBalance)).to.equal(BigInt(mOwnerInitialBalance) - BigInt(mOwnergasUsed) + 3n);
+        expect(BigInt(midBidBalance)).to.equal(BigInt(finalBidderBalance));
     })
 
     it("Rent Ether Balance", async() => {

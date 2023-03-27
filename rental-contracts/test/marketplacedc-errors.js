@@ -22,6 +22,13 @@ const setupAccounts = async () => {
     return [accounts[0], accounts[1]];
 }
 
+const setupERC721 = async () => {
+    const DiffNFT = await ethers.getContractFactory("DiffTypeNFT")
+    const rNFT = await DiffNFT.deploy();
+    await rNFT.deployed();
+    return rNFT;
+}
+
 describe("Marketplace Errors", function() { 
     beforeEach(async function() {
         await network.provider.send("hardhat_reset")
@@ -31,14 +38,22 @@ describe("Marketplace Errors", function() {
         const marketplace = await setUpMarketplace();
         const rentableNFT = await setupContract();
         const [owner, renter] = await setupAccounts();
+        const DNFT = await setupERC721();
     
         //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
         const tx = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
         const txRes = await tx.wait();
+
+        const tx2 = await DNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes2 = await tx2.wait();
     
         const tokenId = txRes.events[0].args.tokenId
         console.log(tokenId)
         let nftAddress = txRes.events[0].address.toString();
+
+        const tokenId2 = txRes2.events[0].args.tokenId
+        console.log(tokenId2)
+        let nftAddress2 = txRes2.events[0].address.toString();
     
         await rentableNFT.approve(marketplace.address, tokenId);
         let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60)
@@ -56,6 +71,10 @@ describe("Marketplace Errors", function() {
         await expect(marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, falseExpiry, {value: 1}))
         .to.be.revertedWith("Listing expiry must be longer than current time.");
         console.log("Listing expiry successfully tested.")
+
+        await expect(marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, {value: 1}))
+        .to.be.revertedWith("Token is not ERC4907, please wrap token")
+        console.log("Token version checked.")
     })
 
     it("Rent Errors", async() => {

@@ -71,6 +71,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     event TokenClaimed(address indexed _nftAddress, uint256 indexed tokenId, address _sender);
     event FeeUpdated(uint256 _from, uint256 _to, address _sender);
     event feeCollectorUpdated(address _from, address _to, address _sender);
+    event commsUpdated(uint256 _from, uint256 _to, address sender);
     event BidReceived(address rentee, uint256 bidAmt);
     event BidReturned(address bidder, uint256 bidAmt);
     event ComissionWithdrawn(address feeCollector, uint256 feeWithdrawn);
@@ -120,15 +121,14 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     //Listing function to list NFTs.
     function listNFT(address _nftAddress, uint256 tokenId, uint256 pricePerDay, uint256 minRentalDays, uint256 maxRentalDays, uint256 listingExpiry) 
     public payable nonReentrant onlyOwner(_nftAddress, tokenId) transactionResumed {
+        //Checks if token is ERC4907
+        require(IERC165(_nftAddress).supportsInterface(IID_ERC4907) == true, "Token is not ERC4907, please wrap token");
         //Ensure that lister has sent ether to pay for listingfee.
         require(msg.value >= listingFee, "Not enough ETH to pay for platform fees");
         //Ensure price is not negative
         require(pricePerDay > 0, "Price must be higher than zero");
         //Ensure listing expiry date is legit, and less than rental expiry.
         require(listingExpiry > block.timestamp, "Listing expiry must be longer than current time.");
-
-        //Checks if token is ERC4907
-        require(IERC165(_nftAddress).supportsInterface(IID_ERC4907) == true, "Token is not ERC4907, please wrap token");
 
         ERC4907(_nftAddress).safeTransferFrom(msg.sender, address(this), tokenId);
 
@@ -147,6 +147,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     function bidNFT(address _nftAddress, uint256 tokenId, uint256 rentalDays) public payable nonReentrant transactionResumed{
         Listing storage token = rentalListings[_nftAddress][tokenId];
         require(msg.sender != token.owner, "Owner cannot bid for their own NFTs");
+        require(msg.sender != address(0), "Bidder cannot be from address(0)");
         require(rentalDays >= token.minRentalDays, "Rental Days cannot be shorter than minimum");
         require(rentalDays <= token.maxRentalDays, "Rental Days cannot be longer than maximum");
         require(token.listingExpiry > block.timestamp, "Listing has expired");
@@ -188,35 +189,6 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         _bidRental(_nftAddress, tokenId, owner, rentee, rentalDuration, acceptedAmt);
 
         emit TokenRented(_nftAddress, tokenId, rentee, rentalDuration, token.pricePerDay, msg.sender);
-    }
-
-    function _bidRental(address _nftAddress, uint256 tokenId, address owner, address rentee, uint256 rentalDays, uint256 bidAmt) private {
-        require(rentee.balance >= bidAmt, "Insufficient balance to pay for rental");
-        Bid[] memory bidStore = bidStorage[_nftAddress][tokenId];
-        uint256 commsRecv = (bidAmt * commsPercentage)/100;
-        uint256 ownerTrf = bidAmt - commsRecv;
-        
-        payable(owner).transfer(ownerTrf);
-        payable(address(this)).transfer(commsRecv);
-
-        uint256 rentalExpiryTime = block.timestamp + (rentalDays * 24 * 60 * 60);
-        ERC4907(_nftAddress).setUser(tokenId, rentee, uint64(rentalExpiryTime));
-
-        Rental memory rentedOut = Rental(payable(owner), payable(msg.sender), rentalExpiryTime);
-        currentlyRented[_nftAddress][tokenId] = rentedOut;
-        uint256 index = tokensRented.length;
-        rentalIndex[_nftAddress][tokenId] = index;
-        tokensRented.push(rentedOut);
-
-        //returns bids for bids that are not accepted.
-        for (uint256 i=0; i < bidStore.length; i++) {
-            Bid memory bidded = bidStore[i];
-            if (bidded.rentee != rentee && bidded.totalBid != bidAmt) {
-                returnBid(bidded.rentee, bidded.totalBid);
-            }
-        }
-
-        delete bidStorage[_nftAddress][tokenId];
     }
 
     //Immediate rental of NFT without a bidding process.
@@ -287,6 +259,35 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         emit TokenClaimed(_nftAddress, tokenId, msg.sender);
     }
 
+    //function to process renting to bids, and returning unaccepted bids to rentee.
+    function _bidRental(address _nftAddress, uint256 tokenId, address owner, address rentee, uint256 rentalDays, uint256 bidAmt) private {
+        Bid[] memory bidStore = bidStorage[_nftAddress][tokenId];
+        uint256 commsRecv = (bidAmt * commsPercentage)/100;
+        uint256 ownerTrf = bidAmt - commsRecv;
+        
+        payable(owner).transfer(ownerTrf);
+        payable(address(this)).transfer(commsRecv);
+
+        uint256 rentalExpiryTime = block.timestamp + (rentalDays * 24 * 60 * 60);
+        ERC4907(_nftAddress).setUser(tokenId, rentee, uint64(rentalExpiryTime));
+
+        Rental memory rentedOut = Rental(payable(owner), payable(msg.sender), rentalExpiryTime);
+        currentlyRented[_nftAddress][tokenId] = rentedOut;
+        uint256 index = tokensRented.length;
+        rentalIndex[_nftAddress][tokenId] = index;
+        tokensRented.push(rentedOut);
+
+        //returns bids for bids that are not accepted.
+        for (uint256 i=0; i < bidStore.length; i++) {
+            Bid memory bidded = bidStore[i];
+            if (bidded.rentee != rentee && bidded.totalBid != bidAmt) {
+                returnBid(bidded.rentee, bidded.totalBid);
+            }
+        }
+
+        delete bidStorage[_nftAddress][tokenId];
+    }
+
     function updateFeeCollector(address newCollector) public marketplaceOwner() {
         address oldCollector = feeCollector;
         feeCollector = payable(newCollector);
@@ -299,6 +300,14 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         listingFee = newFee;
 
         emit FeeUpdated(oldFee, listingFee, msg.sender);
+    }
+
+    //Function to update comission percentage;
+    function updateComission(uint256 _commsPercentage) public marketplaceOwner() {
+        uint256 oldComms = commsPercentage;
+        commsPercentage = _commsPercentage;
+
+        emit commsUpdated(oldComms, commsPercentage, msg.sender);
     }
 
     //Getter function for all bids
