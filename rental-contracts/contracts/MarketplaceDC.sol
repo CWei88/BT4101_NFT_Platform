@@ -25,6 +25,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
     mapping(address => mapping(uint256 => mapping(address => Bid))) private rentalBids; //used to store bids for rentals.
     mapping(address => mapping(uint256 => Rental)) private currentlyRented; //store currently rented NFTs.
     mapping(address => mapping(uint256 => Bid[])) private bidStorage; // Bid storage to get number of bid for each nft.
+    mapping(address => Bid[]) private renterBids; //Stores list of bids that renter has bidded.
     //Mapping to get listings and index of listed items.
     mapping(address => mapping(uint256 => uint256)) private listingIndex;
     Listing[] private listedTokens; //Array to store all listed NFTs
@@ -50,6 +51,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         uint256 pricePerDay;
         uint256 rentalDays;
         uint256 totalBid;
+        uint256 bidTime;
     }
 
     //Struct to store items currently rented out.
@@ -156,7 +158,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         require(token.availableToRent == true, "Token is not available for Rental");
         require(currentlyRented[_nftAddress][tokenId].rentalEnd == 0, "Token has been rented out");
 
-        Bid memory newBid = Bid(_nftAddress, tokenId, payable(msg.sender), token.pricePerDay, rentalDays, msg.value);
+        Bid memory newBid = Bid(_nftAddress, tokenId, payable(msg.sender), token.pricePerDay, rentalDays, msg.value, block.timestamp);
         rentalBids[_nftAddress][tokenId][msg.sender] = newBid;
         Bid[] memory bidStore = bidStorage[_nftAddress][tokenId];
         bool isChanged = false;
@@ -172,6 +174,12 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
 
         if (!isChanged) { //if there was no such bid from the rentee before.
             bidStorage[_nftAddress][tokenId].push(newBid);
+        }
+
+        if (renterBids[msg.sender].length != 0) {
+            renterBids[msg.sender] = addRenterBid(newBid, msg.sender);
+        } else {
+            renterBids[msg.sender].push(newBid);
         }
 
         emit TokenBid(_nftAddress, tokenId, rentalDays, msg.value);
@@ -190,6 +198,63 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
 
         emit TokenRented(_nftAddress, tokenId, rentee, rentalDuration, token.pricePerDay, msg.sender);
     }
+
+    function rejectBid(address _nftAddress, uint256 tokenId, address rentee) public payable nonReentrant transactionResumed {
+        Listing storage token = rentalListings[_nftAddress][tokenId];
+        Bid memory rejectedBid = rentalBids[_nftAddress][tokenId][rentee];
+        require(token.owner == msg.sender, "Caller is not token owner");
+        require(rejectedBid.rentee != address(0), "Bid does not exist");
+
+        Bid[] storage bidS = bidStorage[_nftAddress][tokenId];
+        
+        uint256 index = 0;
+        for (uint256 i=0; i < bidS.length; i++) {
+            Bid memory bidded = bidS[i];
+            if (bidded.rentee == rentee) {
+                index = i;
+            }
+        }
+
+        for (uint256 i=index; i<bidS.length - 1; i++) {
+            bidS[i] = bidS[i+1];
+        }
+        bidS.pop();
+        bidStorage[_nftAddress][tokenId] = bidS;
+
+        renterBids[rentee] = removeRenterBid(_nftAddress, tokenId, rentee);
+
+        uint256 bidAmt = rejectedBid.totalBid;
+        returnBid(rentee, bidAmt);
+        delete rentalBids[_nftAddress][tokenId][rentee];
+    }
+
+    function withdrawBid(address _nftAddress, uint256 tokenId) public payable nonReentrant {
+        Bid memory withdrawnBid = rentalBids[_nftAddress][tokenId][msg.sender];
+        require(withdrawnBid.rentee != address(0), "Bid does not exist");
+
+        Bid[] storage bidS = bidStorage[_nftAddress][tokenId];
+
+        uint256 index = 0;
+        for (uint256 i=0; i < bidS.length; i++) {
+            Bid memory bidded = bidS[i];
+            if (bidded.rentee == msg.sender ) {
+                index = i;
+            }
+        }
+
+        for (uint256 i=index; i<bidS.length - 1; i++) {
+            bidS[i] = bidS[i+1];
+        }
+        bidS.pop();
+        bidStorage[_nftAddress][tokenId] = bidS;
+
+        renterBids[msg.sender] = removeRenterBid(_nftAddress, tokenId, msg.sender);
+
+        uint256 bidAmt = withdrawnBid.totalBid;
+        returnBid(msg.sender, bidAmt);
+        delete rentalBids[_nftAddress][tokenId][msg.sender];
+    }
+
 
     //Immediate rental of NFT without a bidding process.
     function rentNFT(address _nftAddress, uint256 tokenId, uint64 rentalDays) public payable nonReentrant transactionResumed {
@@ -282,6 +347,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
             Bid memory bidded = bidStore[i];
             if (bidded.rentee != rentee && bidded.totalBid != bidAmt) {
                 returnBid(bidded.rentee, bidded.totalBid);
+                renterBids[bidded.rentee] = removeRenterBid(_nftAddress, tokenId, bidded.rentee);
             }
         }
 
@@ -310,11 +376,36 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         emit commsUpdated(oldComms, commsPercentage, msg.sender);
     }
 
-    //Getter function for all bids
-    function getAllBids(address _nftAddress, uint256 tokenId) public view  returns(Bid[] memory){
+    //Getter function for all available bids
+    function getAllBids(address _nftAddress, uint256 tokenId) public view returns(Bid[] memory){
         Listing memory token = rentalListings[_nftAddress][tokenId];
         require(token.owner == msg.sender, "Caller is not token owner");
-        return bidStorage[_nftAddress][tokenId];
+
+        Bid[] storage toks = bidStorage[_nftAddress][tokenId];
+        uint256 bidsAvailable = 0;
+        uint256 currTime = block.timestamp;
+        for (uint256 i=0; i < toks.length; i++) {
+            Bid memory currBid = toks[i];
+            if (currBid.bidTime + (1*24*60*60) >= currTime) {
+                bidsAvailable += 1;
+            }
+        }
+
+        uint256 j = 0;
+        Bid[] memory available = new Bid[](bidsAvailable);
+        for (uint256 i=0; i < toks.length; i++) {
+            Bid memory currBid = toks[i];
+            if (currBid.bidTime + (1*24*60*60) >= currTime) {
+                available[j] = currBid;
+                j += 1;
+            }
+        }
+
+        return available;
+    }
+
+    function getMyBids() public view returns (Bid[] memory) {
+        return renterBids[msg.sender];
     }
 
     //Getter function for marketplace
@@ -411,5 +502,44 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         address payable returner = payable(bidder);
         returner.transfer(valueToReturn);
         emit BidReturned(bidder, valueToReturn);
+    }
+
+    //private function to update bids of rentee
+    function addRenterBid(Bid memory bid, address rentee) private returns(Bid[] storage){
+        Bid[] storage renteeBids = renterBids[rentee];
+        bool hasBidded = false;
+
+        for (uint256 i=0; i < renteeBids.length; i++) {
+            Bid memory cBid = renteeBids[i];
+            if (cBid.contractAddress == bid.contractAddress && cBid.tokenId == bid.tokenId) {
+                renteeBids[i] = bid;
+                hasBidded = true;
+            }
+        }
+
+        if (!hasBidded) {
+            renteeBids.push(bid);
+        }
+
+        return renteeBids;
+    }
+
+    function removeRenterBid(address nftAddress, uint256 tokenId, address rentee) private returns(Bid[] storage){
+        Bid[] storage renteeBids = renterBids[rentee];
+        uint256 index = 0;
+
+        for (uint256 i=0; i < renteeBids.length; i++) {
+            Bid memory cBid = renteeBids[i];
+            if (cBid.contractAddress == nftAddress && cBid.tokenId == tokenId) {
+                index = i;
+            }
+        }
+
+        for (uint256 j=index; j < renteeBids.length - 1; j++) {
+            renteeBids[j] = renteeBids[j+1];
+        }
+
+        renteeBids.pop();
+        return renteeBids;
     }
 }
