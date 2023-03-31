@@ -167,6 +167,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         for (uint256 i=0; i < bidStore.length; i++) {
             Bid memory cBid = bidStore[i];
             if (cBid.rentee == msg.sender) {
+                returnBid(msg.sender, cBid.totalBid);
                 bidStore[i] = newBid;
                 isChanged = true;
             }
