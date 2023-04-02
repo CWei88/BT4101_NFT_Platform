@@ -198,6 +198,76 @@ describe("Test Marketplace Getters", function() {
 
     })
 
+    
+    it("Get renter bids", async() => {
+        const marketplace = await setUpMarketplace();
+        const rentableNFT = await setupContract();
+        const [owner, renter] = await setupAccounts();
+        const newAcc = await ethers.getSigners();
+        const sign = newAcc[2];
+
+        //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
+        const tx = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes = await tx.wait();
+
+        const tx2 = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes2 = await tx2.wait()
+
+        const tx3 = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes3 = await tx3.wait()
+    
+        const tokenId = txRes.events[0].args.tokenId
+        console.log(tokenId)
+        let nftAddress = txRes.events[0].address.toString();
+
+        const tokenId2 = txRes2.events[0].args.tokenId
+        let nftAddress2 = txRes2.events[0].address.toString();
+
+        const tokenId3 = txRes3.events[0].args.tokenId
+        let nftAddress3 = txRes3.events[0].address.toString();
+    
+        await rentableNFT.approve(marketplace.address, tokenId);
+        await rentableNFT.approve(marketplace.address, tokenId2);
+        await rentableNFT.approve(marketplace.address, tokenId3);
+
+        let testExpiry = Math.round(new Date().getTime() / 1000) + (4*24*60*60)
+        let expiryTime = Math.round(new Date().getTime() / 1000) + (2*24*60*60)
+        
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1});
+        await listNFT.wait();
+
+        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 3, testExpiry, {value: 1});
+        await listNFT2.wait();
+
+        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 3, expiryTime, {value: 1});
+        await listNFT3.wait();
+
+        const bidNFT = await marketplace.connect(renter).bidNFT(nftAddress, tokenId, 1, {value: 25});
+        const bidRecp = await bidNFT.wait()
+        expect(bidNFT).to.emit(marketplace, "TokenBid").withArgs(nftAddress, tokenId, 1, 25);
+
+        const bidNFT2 = await marketplace.connect(renter).bidNFT(nftAddress3, tokenId3, 2, {value: 30})
+        await bidNFT2.wait();
+        expect(bidNFT2).to.emit(marketplace, "TokenBid").withArgs(nftAddress3, tokenId3, 2, 30);
+
+        const bidNFT3 = await marketplace.connect(sign).bidNFT(nftAddress3, tokenId3, 2, {value: 40})
+        await bidNFT3.wait();
+        expect(bidNFT3).to.emit(marketplace, "TokenBid").withArgs(nftAddress3, tokenId3, 2, 40);
+
+        let numBids = await marketplace.connect(renter).getMyBids();
+        expect(numBids.length).to.equal(2);
+        expect(numBids[0].contractAddress).to.equal(nftAddress)
+        expect(numBids[0].tokenId).to.equal(tokenId)
+
+        expect(numBids[1].totalBid).to.equal(30);
+        expect(numBids[1].rentalDays).to.equal(2);
+
+        const acceptRental = await marketplace.connect(owner).acceptBid(nftAddress3, tokenId3, sign.address);
+
+        let newNumBids = await marketplace.connect(renter).getMyBids();
+        expect(newNumBids.length).to.equal(1);
+    })
+
     it("Get comissionBalance", async() => {
         const marketplace = await setUpMarketplace();
         const rentableNFT = await setupContract();

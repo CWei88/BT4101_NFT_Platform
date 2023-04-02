@@ -172,7 +172,7 @@ describe("Marketplace Errors", function() {
         expect(successBid).to.emit(marketplace, "TokenBid").withArgs(nftAddress, tokenId, 2, 25);
 
         await expect(marketplace.connect(renter).acceptBid(nftAddress, tokenId, renter.address)).to.be.revertedWith("Caller is not token owner");
-        console.log("Rouge acceptance tested");
+        console.log("Rouge acceptance tested");  
 
         let realAcceptance = await marketplace.connect(owner).acceptBid(nftAddress, tokenId, renter.address);
         await realAcceptance.wait();
@@ -204,6 +204,69 @@ describe("Marketplace Errors", function() {
         await expect(marketplace.connect(acc).bidNFT(nftAddress2, tokenId2, 2, {value:20})).to.be.revertedWith("Token is not available for Rental");
         console.log("Bidding after delisting tested.")
 
+    })
+
+    it("Bid withdrawal and rejection errors", async() => {
+        const marketplace = await setUpMarketplace();
+        const rentableNFT = await setupContract();
+        const [owner, renter] = await setupAccounts();
+        const newAcc = await ethers.getSigners();
+        const sign = newAcc[2];
+
+        //Mint tokenID to owner. Connect function lets us interact with contract instance explicitly from an account of our choice.
+        const tx = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes = await tx.wait();
+
+        const tx2 = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes2 = await tx2.wait()
+
+        const tx3 = await rentableNFT.connect(owner).mint(owner.address, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
+        const txRes3 = await tx3.wait()
+    
+        const tokenId = txRes.events[0].args.tokenId
+        console.log(tokenId)
+        let nftAddress = txRes.events[0].address.toString();
+
+        const tokenId2 = txRes2.events[0].args.tokenId
+        let nftAddress2 = txRes2.events[0].address.toString();
+
+        const tokenId3 = txRes3.events[0].args.tokenId
+        let nftAddress3 = txRes3.events[0].address.toString();
+    
+        await rentableNFT.approve(marketplace.address, tokenId);
+        await rentableNFT.approve(marketplace.address, tokenId2);
+        await rentableNFT.approve(marketplace.address, tokenId3);
+
+        let testExpiry = Math.round(new Date().getTime() / 1000) + (4*24*60*60)
+        let expiryTime = Math.round(new Date().getTime() / 1000) + (2*24*60*60)
+        
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1});
+        await listNFT.wait();
+
+        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 3, testExpiry, {value: 1});
+        await listNFT2.wait();
+
+        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 3, expiryTime, {value: 1});
+        await listNFT3.wait();
+
+        const bidNFT = await marketplace.connect(renter).bidNFT(nftAddress, tokenId, 1, {value: 25});
+        const bidRecp = await bidNFT.wait()
+        expect(bidNFT).to.emit(marketplace, "TokenBid").withArgs(nftAddress, tokenId, 1, 25);
+
+        const bidNFT2 = await marketplace.connect(renter).bidNFT(nftAddress3, tokenId3, 2, {value: 30})
+        await bidNFT2.wait();
+        expect(bidNFT2).to.emit(marketplace, "TokenBid").withArgs(nftAddress3, tokenId3, 2, 30);
+
+        const bidNFT3 = await marketplace.connect(sign).bidNFT(nftAddress3, tokenId3, 2, {value: 40})
+        await bidNFT3.wait();
+        expect(bidNFT3).to.emit(marketplace, "TokenBid").withArgs(nftAddress3, tokenId3, 2, 40);
+
+        await expect(marketplace.connect(sign).rejectBid(nftAddress3, tokenId3, renter.address)).to.be.revertedWith("Caller is not token owner")
+        await expect(marketplace.connect(owner).rejectBid(nftAddress, tokenId, sign.address)).to.be.revertedWith("Bid does not exist")
+        console.log("Tested Rejection Errors")
+
+        await expect(marketplace.connect(renter).withdrawBid(nftAddress2, tokenId2)).to.be.revertedWith("Bid does not exist")
+        console.log("Tested bid withdrawal errors")
     })
 
     it("Delist Errors", async() => {
