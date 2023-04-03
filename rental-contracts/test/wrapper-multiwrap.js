@@ -220,10 +220,10 @@ describe("Wrapper Test", function() {
 
         let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60);
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, false, {value: 1});
         await listNFT.wait();
         console.log(`Listed NFT ${tokenId}`);
-        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress2, tokenId2, 10, 0, 1, expiryTime)
+        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress2, tokenId2, 10, 0, 1, expiryTime, false)
 
     })
 
@@ -253,10 +253,10 @@ describe("Wrapper Test", function() {
 
         let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60);
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, true, {value: 1});
         await listNFT.wait();
         console.log(`Listed NFT ${tokenId}`);
-        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress2, tokenId2, 10, 0, 1, expiryTime)
+        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress2, tokenId2, 10, 0, 1, expiryTime, true)
 
         const rental = await marketplace.connect(renter).rentNFT(nftAddress2, tokenId2, 1, {value: 10})
         await rental.wait();
@@ -302,10 +302,10 @@ describe("Wrapper Test", function() {
 
         let expiryTime = Math.round(new Date().getTime() / 1000) + (2*24*60*60);
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, true, {value: 1});
         await listNFT.wait();
         console.log(`Listed NFT ${tokenId2}`);
-        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress2, tokenId2, 10, 0, 1, expiryTime)
+        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress2, tokenId2, 10, 0, 1, expiryTime, true)
 
         const rental = await marketplace.connect(renter).rentNFT(nftAddress2, tokenId2, 1, {value: 10})
         await rental.wait();

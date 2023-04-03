@@ -65,16 +65,16 @@ describe("Test Marketplace Getters", function() {
 
         let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60)
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, false, {value: 1});
         await listNFT.wait();
 
-        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, false, {value: 1});
         await listNFT2.wait();
 
-        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 1, expiryTime, false, {value: 1});
         await listNFT3.wait();
 
-        const listNFT4 = await marketplace.connect(renter).listNFT(nftAddress4, tokenId4, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT4 = await marketplace.connect(renter).listNFT(nftAddress4, tokenId4, 10, 0, 1, expiryTime, false, {value: 1});
         await listNFT4.wait();
 
         let lister = await marketplace.getAllListings();
@@ -166,13 +166,13 @@ describe("Test Marketplace Getters", function() {
         let testExpiry = Math.round(new Date().getTime() / 1000) + (3*24*60*60)
         let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60)
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, true, {value: 1});
         await listNFT.wait();
 
-        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 3, testExpiry, {value: 1});
+        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 3, testExpiry, true, {value: 1});
         await listNFT2.wait();
 
-        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 3, expiryTime, {value: 1});
+        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 3, expiryTime, true, {value: 1});
         await listNFT3.wait();
 
         const rental = await marketplace.connect(renter).rentNFT(nftAddress, tokenId, 1, {value: 10})
@@ -233,13 +233,13 @@ describe("Test Marketplace Getters", function() {
         let testExpiry = Math.round(new Date().getTime() / 1000) + (4*24*60*60)
         let expiryTime = Math.round(new Date().getTime() / 1000) + (2*24*60*60)
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, false, {value: 1});
         await listNFT.wait();
 
-        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 3, testExpiry, {value: 1});
+        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 3, testExpiry, false, {value: 1});
         await listNFT2.wait();
 
-        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 3, expiryTime, {value: 1});
+        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 3, expiryTime, false, {value: 1});
         await listNFT3.wait();
 
         const bidNFT = await marketplace.connect(renter).bidNFT(nftAddress, tokenId, 1, {value: 25});
@@ -308,16 +308,16 @@ describe("Test Marketplace Getters", function() {
 
         let expiryTime = Math.round(new Date().getTime() / 1000) + (1*24*60*60)
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 0, 1, expiryTime, true, {value: 1});
         await listNFT.wait();
 
-        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT2 = await marketplace.connect(owner).listNFT(nftAddress2, tokenId2, 10, 0, 1, expiryTime, false, {value: 1});
         await listNFT2.wait();
 
-        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT3 = await marketplace.connect(owner).listNFT(nftAddress3, tokenId3, 10, 0, 1, expiryTime, true, {value: 1});
         await listNFT3.wait();
 
-        const listNFT4 = await marketplace.connect(renter).listNFT(nftAddress4, tokenId4, 10, 0, 1, expiryTime, {value: 1});
+        const listNFT4 = await marketplace.connect(renter).listNFT(nftAddress4, tokenId4, 10, 0, 1, expiryTime, false, {value: 1});
         await listNFT4.wait();
 
         let currBalance = await marketplace.connect(mOwner).getComissionBalance();

@@ -2,7 +2,7 @@
 require('@nomicfoundation/hardhat-toolbox')
 require('dotenv').config()
 
-const {API_URL, PRIVATE_KEY, SECONDARY_PRIVATE_KEY} = process.env;
+const {API_URL, REACT_APP_PRIVATE_KEY, REACT_APP_SECONDARY_PRIVATE_KEY} = process.env;
 
 module.exports = {
 	solidity: {
@@ -22,7 +22,7 @@ module.exports = {
 		},
 		goerli: {
 			url: API_URL,
-			accounts: [`0x${PRIVATE_KEY}`, `0x${SECONDARY_PRIVATE_KEY}`]
+			accounts: [`0x${REACT_APP_PRIVATE_KEY}`, `0x${REACT_APP_SECONDARY_PRIVATE_KEY}`]
 		}
 	}
 }

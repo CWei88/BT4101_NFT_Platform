@@ -46,11 +46,11 @@ describe("Ether balance Test for accounts", function() {
         let initialBalance = await ethers.provider.getBalance(owner.address);
         initialBalance = initialBalance.toString();
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 1, 3, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 1, 3, expiryTime, false, {value: 1});
         const recp = await listNFT.wait();
         
         console.log(`Listed NFT ${tokenId}`);
-        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress, tokenId, 10, 1, 3, expiryTime)
+        await expect(listNFT).to.emit(marketplace, "TokenListed").withArgs(nftAddress, tokenId, 10, 1, 3, expiryTime, false)
 
         const gasUsed = BigInt(recp.cumulativeGasUsed) * BigInt(recp.effectiveGasPrice);
 
@@ -84,7 +84,7 @@ describe("Ether balance Test for accounts", function() {
         let mOwnerInitialBalance = await ethers.provider.getBalance(mplaceOwner.address);
         mOwnerInitialBalance = mOwnerInitialBalance.toString();
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 1, 3, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 10, 1, 3, expiryTime, false, {value: 1});
         const recp = await listNFT.wait();
 
         let bidderBalance = await ethers.provider.getBalance(renter.address);
@@ -157,7 +157,7 @@ describe("Ether balance Test for accounts", function() {
         let mOwnerInitialBalance = await ethers.provider.getBalance(mplaceOwner.address);
         mOwnerInitialBalance = mOwnerInitialBalance.toString();
         
-        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 1000, 1, 3, expiryTime, {value: 1});
+        const listNFT = await marketplace.connect(owner).listNFT(nftAddress, tokenId, 1000, 1, 3, expiryTime, true, {value: 1});
         const recp = await listNFT.wait();
 
         let renterInitialBalance = await ethers.provider.getBalance(renter.address);
