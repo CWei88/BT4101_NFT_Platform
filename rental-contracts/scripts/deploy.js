@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const fs = require("fs");
 
-const PUBLIC_KEY = process.env.PUBLIC_KEY
+const PUBLIC_KEY = process.env.REACT_APP_PUBLIC_KEY
 
 async function main() {
 
