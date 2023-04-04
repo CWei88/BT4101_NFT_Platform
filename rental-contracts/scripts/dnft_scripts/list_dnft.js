@@ -1,13 +1,13 @@
 require('dotenv').config()
 const {ethers} = require('hardhat')
 
-const marketplaceContract = require('../artifacts/contracts/MarketplaceDC.sol/MarketplaceDC.json')
+const marketplaceContract = require('../../artifacts/contracts/MarketplaceDC.sol/MarketplaceDC.json')
 const contractAddress = '0xa29d10dAD47784a00Aa14372d63b39466fE30e8A'
 
-const wrapper = require('../artifacts/contracts/ERC4907/ERC4907Wrapper.sol/ERC4907Wrapper.json')
+const wrapper = require('../../artifacts/contracts/ERC4907/ERC4907Wrapper.sol/ERC4907Wrapper.json')
 const wrapperAddress = "0xfD3E5809B411AE36f791D05F6BaD61AA018C0214"
 
-const wrappedToken = require('../artifacts/contracts/ERC4907/ERC4907.sol/ERC4907.json')
+const wrappedToken = require('../../artifacts/contracts/ERC4907/ERC4907.sol/ERC4907.json')
 
 async function list() {
     const Market = await ethers.getContractAt("MarketplaceDC", contractAddress)
