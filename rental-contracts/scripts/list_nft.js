@@ -35,6 +35,13 @@ async function list() {
     await listTx.wait()
 
     console.log("NFT Listed")
+
+    let secondTokenId = '2';
+    await token.connect(ownerSigner).approve(contractAddress, secondTokenId)
+
+    console.log('Listing second NFT')
+    let listTx2 = await Market.connect(ownerSigner).listNFT(NFTAddress, secondTokenId, 10, 1, 3, Math.round(new Date().getTime() / 1000) + (2*24*60*60), true, {value: mktFee})
+    console.log("Second NFT Listed")
    
 }
 

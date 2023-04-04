@@ -487,7 +487,7 @@ contract MarketplaceDC is ReentrancyGuard, IERC721Receiver{
         return currRented;
     }
 
-    function withdrawComission() external payable {
+    function withdrawComission() external payable nonReentrant {
         require(msg.sender == feeCollector, "Only feeCollector can withdraw");
         uint256 currBalance = address(this).balance;
         feeCollector.transfer(currBalance);
