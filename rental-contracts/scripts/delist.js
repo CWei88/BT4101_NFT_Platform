@@ -1,74 +1,23 @@
-const { ethers } = require("hardhat");
-const fs = require("fs");
+require('dotenv').config()
+const {ethers} = require('hardhat')
 
-async function delist()  {
-    const accounts = await ethers.getSigners();
-    const [deployer, owner, buyer1] = accounts;
-    
-    const Mplace = await ethers.getContractFactory('NFTRM')
-    const marketplace = await Mplace.deploy();
+const marketplaceContract = require('../artifacts/contracts/MarketplaceDC.sol/MarketplaceDC.json')
+const contractAddress = '0xa29d10dAD47784a00Aa14372d63b39466fE30e8A'
 
-    await marketplace.deployed();
+const rentableContract = require('../artifacts/contracts/RentableNFT.sol/RentableNFT.json')
 
-    const ID = {
-        [deployer.address]: "DEPLOYER",
-        [owner.address]: "OWNER",
-        [buyer1.address]: "BUYER1",
-        [marketplace.address]: "MARKETPLACE"
-    }
+async function delist() {
+    const Market = await ethers.getContractAt("NFTRM", contractAddress)
 
-    //Pull the address and ABI out while you deploy, since that will be key in interacting with the smart contract
-    const data = {
-        address: marketplace.address,
-        abi: JSON.parse(marketplace.interface.format('json'))
-    }
+    const owner = '0xdC3A74E97F3D40Ebd0Ec64b9b01128b6E200969C'
+    const NFTAddress = '0x0E99b6eEAF4777b8D3b9A6dEd29a363df43adED3'
+    const ownerSigner = await ethers.getSigner(owner)
 
-    //Writes the ABI and address to marketplace.json
-    //Used by frontend files to connect with smart contract
-    fs.writeFileSync('./src/NFTRM.json', JSON.stringify(data));
+    console.log("Delisting NFT")
+    let delistTx = await Market.connect(ownerSigner).delistNFT(NFTAddress, '2')
+    await delistTx.wait()
 
-    console.log("Marketplace deployed to: ", marketplace.address)
-
-    const RentableNFT = await ethers.getContractFactory("RentableNFT")
-    const rNFT = await RentableNFT.deploy("RentableNFT", "RNFT");
-    await rNFT.deployed();
-
-    const NFTdata = {
-        address: rNFT.address,
-        abi: JSON.parse(rNFT.interface.format('json'))
-    }
-    console.log("Contract deployed to: ", rNFT.address)
-
-    fs.writeFileSync('./NFT.json', JSON.stringify(NFTdata))
-
-    let token = await rNFT.connect(owner).mint(1, 'QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU');
-    let tokenRes = await token.wait();
-
-    let listingFee = await marketplace.getListingFee();
-    listingFee = listingFee.toString();
-
-    const TOKEN_ID = tokenRes.events[0].args.tokenId
-    console.log(TOKEN_ID)
-
-    let nftAddress = tokenRes.events[0].address.toString();
-    console.log(nftAddress)
-
-    await rNFT.connect(owner).approve(marketplace.address, TOKEN_ID)
-
-    const listing = await marketplace.connect(owner).listNFT(nftAddress, TOKEN_ID, 1, Math.round(new Date().getTime() / 1000) + 700, Math.round(new Date().getTime() / 1000) + 700, {value: listingFee})
-    await listing.wait()
-
-    console.log("Token Listed")
-
-    const delisting = await marketplace.connect(owner).delistNFT(nftAddress, TOKEN_ID)
-    await delisting.wait()
-
-    console.log("Token delisted")
-
-    const newOwner = await rNFT.ownerOf(TOKEN_ID)
-    const newUser = await rNFT.userOf(TOKEN_ID)
-    console.log(`New user of Token ID ${TOKEN_ID} is ${newUser} with identity of ${ID[newUser]}`)
-    console.log(`Owner of TokenID ${TOKEN_ID} is ${newOwner} with identity of ${ID[newOwner]}`)
+    console.log("NFT delisted")
 }
 
 delist().then(() => process.exit(0))

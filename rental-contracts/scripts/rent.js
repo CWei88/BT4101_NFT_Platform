@@ -1,20 +1,24 @@
 require('dotenv').config()
 const {ethers} = require('hardhat')
 
+const marketplaceContract = require('../artifacts/contracts/MarketplaceDC.sol/MarketplaceDC.json')
+const contractAddress = '0xa29d10dAD47784a00Aa14372d63b39466fE30e8A'
+
+const rentableContract = require('../artifacts/contracts/RentableNFT.sol/RentableNFT.json')
+
 async function rent() {
-    console.log("Getting token for rent");
-    const contractAddress = '0x0E99b6eEAF4777b8D3b9A6dEd29a363df43adED3'
-    const token = await ethers.getContractAt("RentableNFT", contractAddress)
-    const owner = '0xdC3A74E97F3D40Ebd0Ec64b9b01128b6E200969C'
+    const Market = await ethers.getContractAt("MarketplaceDC", contractAddress)
 
     const renter = '0xD172885233efaa6Ce7018c0718D12550a2991196'
-    const tokenId = '2'
-    const expiry = Math.round(new Date().getTime() / 1000) + 600
-    let tx = await token.rent(tokenId, renter, expiry)
-    await tx.wait();
+    const NFTAddress = '0x5eA85Ff0d0C68f6F9A15E8F53196d514ac5B2186'
 
-    console.log(`NFT ${tokenId} rented to ${renter} until ${expiry}`)
-    console.log(tx.hash)
+    const renterSigner = await ethers.getSigner(renter)
+
+    console.log("Renting NFT")
+    let rentTx = await Market.connect(renterSigner).rentNFT('1', {value: 100})
+    await rentTx.wait()
+
+    console.log("NFT Rented")
 }
 
 rent().then(() => process.exit(0))  
