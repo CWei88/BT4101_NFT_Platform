@@ -1,0 +1,11 @@
+#warning {
+    display:none;
+}
+
+#pre-login {
+    display:block;
+}
+
+#post-login {
+    display:none;
+}
