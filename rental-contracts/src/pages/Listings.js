@@ -186,10 +186,12 @@ const Listings=()=>{
     let expiryTime = Math.round(new Date().getTime() / 1000) + (listingDuration*24*60*60)
 
     try{
+      var listingFee = 0;
+      await Market.methods.getListingFee().call().then(res => listingFee = res);
       await Wrapper.methods.ownerOf(wrapperID).call().then(res => console.log(res))
       await Market.methods
       .listNFT(REACT_APP_WRAPPER_ADDRESS, wrapperID, price,minDays,maxDays, expiryTime,!bidRequired)
-      .send({from:address,value:1});
+      .send({from:address,value:listingFee});
       console.log("NFT Listed")
       await Wrapper.methods.ownerOf(wrapperID).call().then(res => console.log(`Wrapper token owner now becomes: ${res}`))
 
