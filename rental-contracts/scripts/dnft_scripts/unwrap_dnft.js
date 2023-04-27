@@ -8,10 +8,10 @@ async function unwrap() {
     const wrap = await ethers.getContractAt("ERC4907Wrapper", wrapperAddress);
     const owner = '0xdC3A74E97F3D40Ebd0Ec64b9b01128b6E200969C'
 
-    let tokenId = '1'
+    let tokenId = '4'
     const ownerSigner = await ethers.getSigner(owner)
 
-    console.log("Unwrapping NFT");
+    console.log("Unwrapping NFT: " + tokenId);
     let unwrapTx = await wrap.connect(ownerSigner).unwrapToken(tokenId)
     await unwrapTx.wait();
 
