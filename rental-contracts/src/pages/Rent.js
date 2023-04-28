@@ -248,18 +248,6 @@ const Rent = () => {
                       </DialogContentText>
                       <p></p>
                         <Grid container sx={{flexDirection: 'row',justifyContent:"space-around"}}>
-                          <Grid>
-                              <TextField sx={{input: {textAlign: "center"}}}
-                                required
-                                autoFocus
-                                margin="dense"
-                                id="totalPrice"
-                                label="Price"
-                                type="number"
-                                variant="outlined"
-                                onChange={(e)=>setPricePerDay(e.target.value)}
-                              />
-                            </Grid>
                             <Grid>
                               <TextField sx={{input: {textAlign: "center"}}}
                                 required
