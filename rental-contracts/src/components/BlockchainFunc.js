@@ -132,12 +132,16 @@ async function extractListingData(listing,address) {
     await Wrapper.methods.getTokenID(wrapperID).call({from:address}).then(res => {
         tokenID = res;
     })
+    console.log(tokenID)
+
     await Wrapper.methods.getTokenAddress(wrapperID).call({from:address}).then(res => {
         tokenAddress = res;
     })
+    console.log(tokenAddress)
     await token_dnft.methods.tokenURI(tokenID).call({from:address}).then(res => {
         url = res
     })
+    console.log(url)
     
     response = await fetch(url).then(res => {
         return res.json()

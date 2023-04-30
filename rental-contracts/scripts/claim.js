@@ -14,7 +14,7 @@ async function claim() {
     const ownerSigner = await ethers.getSigner(owner)
 
     console.log("Claiming NFT");
-    let claimTx = await market.connect(ownerSigner).claimNFT(NFTAddress, '1')
+    let claimTx = await market.connect(ownerSigner).claimNFT(NFTAddress, '2')
     await claimTx.wait();
 
     console.log("NFT claimed")

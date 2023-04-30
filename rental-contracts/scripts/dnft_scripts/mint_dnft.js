@@ -3,10 +3,10 @@ const {ethers} = require('hardhat')
 
 const PUBLIC_KEY = process.env.REACT_APP_PUBLIC_KEY
 
-const TOKEN_URI = `https://gateway.pinata.cloud/ipfs/QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU`
+const TOKEN_URI = `https://gateway.pinata.cloud/ipfs/Qma6pcbuGDTXyc5FaWTCXNQACTLLhXY5XCzxgYspkQE5ea`
 
 const contract = require('../../artifacts/contracts/DiffTypeNFT.sol/DiffTypeNFT.json')
-const contractAddress = '0xAFBa120f281FF1dc7850Fd6b2AAaB3d20Bfad713'
+const contractAddress = '0x71c172328A1f7146c98D31A0730FCc7c323D61A8'
 
 async function mint() {
     const nft = await ethers.getContractAt(contract.abi, contractAddress)

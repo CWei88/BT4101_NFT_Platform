@@ -2,10 +2,10 @@ require('dotenv').config()
 const {ethers} = require('hardhat')
 
 const wrapper = require('../../artifacts/contracts/ERC4907/ERC4907Wrapper.sol/ERC4907Wrapper.json')
-const wrapperAddress = "0xfD3E5809B411AE36f791D05F6BaD61AA018C0214"
+const wrapperAddress = "0x3dE1410ceE2053B2958731a548FF51B71ec4F131"
 
 async function wrap() {
-    const NFTAddress = '0xAFBa120f281FF1dc7850Fd6b2AAaB3d20Bfad713'
+    const NFTAddress = '0x71c172328A1f7146c98D31A0730FCc7c323D61A8'
     const wrap = await ethers.getContractAt("ERC4907Wrapper", wrapperAddress);
     const token = await ethers.getContractAt("DiffTypeNFT", NFTAddress);
     const owner = '0xdC3A74E97F3D40Ebd0Ec64b9b01128b6E200969C'

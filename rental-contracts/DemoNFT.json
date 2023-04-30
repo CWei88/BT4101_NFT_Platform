@@ -1,0 +1,24 @@
+{
+  "image": "https://gateway.pinata.cloud/ipfs/QmajND4yTTGQioPHT5wAtDQqXVpL2GwNKk3PUbC9je764j", 
+  "name": "Seismic Dress",
+  "isTicket": false,
+  "series": "Seismic",
+  "description": "A digital dress made by Seismic, created exclusively for Vogue Singapore by Amber Slooten. This is retrieved from https://vogue.sg/the-making-of-seismic-the-digital-garment-created-exclusively-for-vogue-singapore/",
+  "attributes": [
+    {
+      "trait_type": "Background", 
+      "value": "White",
+      "rarity": 1
+    }, 
+    {
+      "trait_type": "Body", 
+      "value": "Mannequin",
+      "rarity": 0.3
+    }, 
+    {
+      "trait_type": "Clothes", 
+      "value": "Dress",
+      "rarity": 0.1
+    }
+  ]
+}

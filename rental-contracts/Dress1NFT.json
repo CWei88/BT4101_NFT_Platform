@@ -1,0 +1,24 @@
+{
+    "image": "https://gateway.pinata.cloud/ipfs/Qmd67WwUEdyDwnqF7s32Fv9K53E6Ppim6ttBmr7gRgRwZb", 
+    "name": "Republique Dress",
+    "isTicket": false,
+    "series": "Republique Dress",
+    "description": "A digital dress from Republique, courtesy of Salonga from Forbes. For more information, visit https://www.forbes.com/sites/biancasalonga/2021/10/28/are-designer-nfts-and-digital-clothing-the-new-chic/?sh=543dce304a86",
+    "attributes": [
+      {
+        "trait_type": "Background", 
+        "value": "White",
+        "rarity": 1
+      }, 
+      {
+        "trait_type": "Colour", 
+        "value": "Blue",
+        "rarity": 0.2
+      }, 
+      {
+        "trait_type": "Clothes", 
+        "value": "Dress",
+        "rarity": 0.05
+      }
+    ]
+  }

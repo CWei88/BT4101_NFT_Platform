@@ -11,7 +11,6 @@ contract DiffTypeNFT is ERC721URIStorage {
 
     event MintNFT(uint256 tokenId);
 
-
     constructor () ERC721("Diff Type NFT", "DNFT") {}
 
     function mint(address _to, string memory tokenURI) public {

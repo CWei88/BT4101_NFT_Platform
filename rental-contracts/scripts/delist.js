@@ -14,7 +14,7 @@ async function delist() {
     const ownerSigner = await ethers.getSigner(owner)
 
     console.log("Delisting NFT")
-    let delistTx = await Market.connect(ownerSigner).delistNFT(NFTAddress, '1')
+    let delistTx = await Market.connect(ownerSigner).delistNFT(NFTAddress, '2')
     await delistTx.wait()
 
     console.log("NFT delisted")
