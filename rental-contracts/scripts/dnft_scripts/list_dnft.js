@@ -16,7 +16,7 @@ async function list() {
 
     console.log("Info Received")
 
-    let tokenId = '1'
+    let tokenId = '26'
     const ownerSigner = await ethers.getSigner(owner)
     await wToken.connect(ownerSigner).approve(contractAddress, tokenId)
 
@@ -31,7 +31,7 @@ async function list() {
     console.log("NFT Listed")
 
     console.log("Listing second NFT")
-    let tokenId2 = '2'
+    let tokenId2 = '27'
     await wToken.connect(ownerSigner).approve(contractAddress, tokenId2)
     let listTx2 = await Market.connect(ownerSigner).listNFT(wrapperAddress, tokenId2, 100, 1, 3, Math.round(new Date().getTime() / 1000) + (2*24*60*60), false, {value: mktFee})
     await listTx2.wait()

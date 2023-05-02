@@ -11,7 +11,7 @@ async function wrap() {
     const owner = '0xdC3A74E97F3D40Ebd0Ec64b9b01128b6E200969C'
 
     console.log('Info Received');
-    let tokenId = '1';
+    let tokenId = '25';
     const ownerSigner = await ethers.getSigner(owner)
     await token.connect(ownerSigner).approve(wrapperAddress, tokenId)
 
@@ -22,7 +22,7 @@ async function wrap() {
     console.log("Token ID is", wrapRes.events[2].args.tokenId)
 
     console.log("Wrapping second NFT")
-    let tokenId2 = '2'
+    let tokenId2 = '26'
     await token.connect(ownerSigner).approve(wrapperAddress, tokenId2);
 
     console.log("Wrapping NFT");

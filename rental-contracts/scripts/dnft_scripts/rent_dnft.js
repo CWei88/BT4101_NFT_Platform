@@ -15,7 +15,7 @@ async function rent() {
     const renterSigner = await ethers.getSigner(renter)
 
     console.log("Renting NFT")
-    let rentTx = await Market.connect(renterSigner).rentNFT(NFTAddress, '1', 1, {value: 10})
+    let rentTx = await Market.connect(renterSigner).rentNFT(NFTAddress, '26', 1, {value: 10})
     await rentTx.wait()
 
     console.log("NFT Rented")

@@ -17,31 +17,31 @@ async function bid() {
     const ownerSigner = await ethers.getSigner(owner)
 
     console.log("Bidding for NFT")
-    let bidTx = await Market.connect(renterSigner).bidNFT(NFTAddress, '2', 2, {value: 200});
+    let bidTx = await Market.connect(renterSigner).bidNFT(NFTAddress, '27', 2, {value: 200});
     await bidTx.wait();
 
     console.log("Bid successfully submitted.");
 
     console.log("Rejecting bid")
-    let rejectBidTx = await Market.connect(ownerSigner).rejectBid(NFTAddress, '2', renter);
+    let rejectBidTx = await Market.connect(ownerSigner).rejectBid(NFTAddress, '27', renter);
     await rejectBidTx.wait()
     console.log("Bid successfully rejected");
 
     console.log("Bidding for NFT")
-    let bidTx2 = await Market.connect(renterSigner).bidNFT(NFTAddress, '2', 2, {value: 200});
+    let bidTx2 = await Market.connect(renterSigner).bidNFT(NFTAddress, '27', 2, {value: 200});
     await bidTx2.wait();
 
     console.log("Withdrawing bid");
-    let withdrawBidTx = await Market.connect(renterSigner).withdrawBid(NFTAddress, '2');
+    let withdrawBidTx = await Market.connect(renterSigner).withdrawBid(NFTAddress, '27');
     await withdrawBidTx.wait();
     console.log("Bid successfully withdrawn")
 
     console.log("Bidding for NFT")
-    let bidTx3 = await Market.connect(renterSigner).bidNFT(NFTAddress, '2', 2, {value: 200});
+    let bidTx3 = await Market.connect(renterSigner).bidNFT(NFTAddress, '27', 2, {value: 200});
     await bidTx3.wait();
 
     console.log("Accepting Bid")
-    let acceptTx = await Market.connect(ownerSigner).acceptBid(NFTAddress, '2', renter);
+    let acceptTx = await Market.connect(ownerSigner).acceptBid(NFTAddress, '27', renter);
     await acceptTx.wait();
     console.log("Bid accepted");
 }
