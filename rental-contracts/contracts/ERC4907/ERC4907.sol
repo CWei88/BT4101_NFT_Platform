@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: CC0-1.0
+// Modified ERC-4907 code retrieved from EIP Protocol. Retrieved from: https://eips.ethereum.org/EIPS/eip-4907
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";

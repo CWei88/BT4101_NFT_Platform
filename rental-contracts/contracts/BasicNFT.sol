@@ -1,3 +1,5 @@
+//Sample ERC-721 NFT code used to test individual NFT
+
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";

@@ -1,3 +1,4 @@
+//ERC-4907 Wrapper used to wrap ERC-721 to ERC-4907
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -88,7 +89,7 @@ contract ERC4907Wrapper is ERC4907, IERC721Receiver, ReentrancyGuard {
         return IERC721(_nftAddress).ownerOf(_tokenId);
     }
 
-    /// @dev See {IERC165-supportsInterface}.
+    /// Similar to {IERC165-supportsInterface}.
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC4907) returns (bool) {
         return interfaceId == type(IERC4907).interfaceId || super.supportsInterface(interfaceId);
     }

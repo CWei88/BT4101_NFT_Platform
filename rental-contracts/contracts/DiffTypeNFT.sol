@@ -1,3 +1,4 @@
+//Code used to mint ERC-721 NFT for wrapping.
 pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
