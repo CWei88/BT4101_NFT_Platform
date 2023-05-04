@@ -4,21 +4,24 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract BasicNFT is ERC721 { 
     string public constant TOKEN_URI = "ipfs://QmSgCmQVnoqLCxEgjCuo17MFePcxdHUTLjTK2BBWAehAhU";
-    uint256 private s_tokenCounter;
+    using Counters for Counters.Counter;
+    Counters.Counter private tokenIds;
 
     event Minted(uint256 indexed tokenId);
 
     constructor() ERC721("newNFT", "FTX") {
-        s_tokenCounter = 0;
     }
 
     function mintNFT() public {
-        _safeMint(msg.sender, s_tokenCounter);
-        emit Minted(s_tokenCounter);
-        s_tokenCounter = s_tokenCounter + 1;
+        tokenIds.increment();
+        uint256 tokenCounter = tokenIds.current();
+        _safeMint(msg.sender, tokenCounter);
+        emit Minted(tokenCounter);
+        
     }
 
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
@@ -27,6 +30,6 @@ contract BasicNFT is ERC721 {
     }
 
     function getTokenCounter() public view returns(uint256) {
-        return s_tokenCounter;
+        return tokenIds.current();
     }
 }

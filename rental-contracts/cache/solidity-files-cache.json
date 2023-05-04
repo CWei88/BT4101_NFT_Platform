@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\BasicNFT.sol": {
-      "lastModificationDate": 1671768705145,
-      "contentHash": "3793f17cf8318c94ec01d8d85a0e47e7",
+      "lastModificationDate": 1683193433289,
+      "contentHash": "4c1ababc401b31ade837f53da0669df6",
       "sourceName": "contracts/BasicNFT.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -30,7 +30,8 @@
       },
       "imports": [
         "@openzeppelin/contracts/token/ERC721/ERC721.sol",
-        "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol"
+        "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol",
+        "@openzeppelin/contracts/utils/Counters.sol"
       ],
       "versionPragmas": [
         ">=0.8.0 <0.9.0"
@@ -662,8 +663,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\ERC4907\\ERC4907Wrapper.sol": {
-      "lastModificationDate": 1680707803986,
-      "contentHash": "c13495f36f35d819730753b0c9eceb6f",
+      "lastModificationDate": 1683091514746,
+      "contentHash": "0572b551c3dcb3009a2ce6ee72d74ac8",
       "sourceName": "contracts/ERC4907/ERC4907Wrapper.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -704,8 +705,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\ERC4907\\ERC4907.sol": {
-      "lastModificationDate": 1676797324615,
-      "contentHash": "52de23e082735beee40f47e15f1bda0d",
+      "lastModificationDate": 1683091304632,
+      "contentHash": "853310f0acd346c80d4f655d1a9a1209",
       "sourceName": "contracts/ERC4907/ERC4907.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -743,8 +744,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\ERC4907\\IERC4907.sol": {
-      "lastModificationDate": 1672907335431,
-      "contentHash": "2f1e8545250ba49c22d577f24bb9ab7e",
+      "lastModificationDate": 1683091344652,
+      "contentHash": "f9239821133a3a2ada7dd03634d6ce51",
       "sourceName": "contracts/ERC4907/IERC4907.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -883,8 +884,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\RentableNFT.sol": {
-      "lastModificationDate": 1675065285875,
-      "contentHash": "d5a3157462290e6a12ddf5cc8e8157cf",
+      "lastModificationDate": 1683091532894,
+      "contentHash": "04489ac53eb9d9a24cf8fcea45919166",
       "sourceName": "contracts/RentableNFT.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -922,8 +923,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\DiffTypeNFT.sol": {
-      "lastModificationDate": 1682762918061,
-      "contentHash": "6e5fa1f8fc00bd351130758f06e671b4",
+      "lastModificationDate": 1683091448549,
+      "contentHash": "8dbd86f6b8824b8b64c0b3bcc54c0d2c",
       "sourceName": "contracts/DiffTypeNFT.sol",
       "solcConfig": {
         "version": "0.8.17",
@@ -961,8 +962,8 @@
       ]
     },
     "C:\\Users\\Chen Wei\\Documents\\GitHub\\BT4101_NFT_Platform\\rental-contracts\\contracts\\MarketplaceDC.sol": {
-      "lastModificationDate": 1680587065747,
-      "contentHash": "c434c33b74b47c8b6148280b149fe86c",
+      "lastModificationDate": 1683091550957,
+      "contentHash": "a59f02c978d41101323d5f8bbd8d2ad3",
       "sourceName": "contracts/MarketplaceDC.sol",
       "solcConfig": {
         "version": "0.8.17",
